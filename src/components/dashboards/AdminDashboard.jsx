@@ -540,6 +540,150 @@ const AddBookView = () => {
     );
 };
 
+
+
+const AdminChatView = () => {
+    const { user } = useAuth();
+    const { users, sendMessage, getChats } = useData();
+    const [activeTab, setActiveTab] = useState('student'); // 'student' | 'teacher'
+    const [selectedUserId, setSelectedUserId] = useState(null);
+    const [newMessage, setNewMessage] = useState('');
+    const [chatHistory, setChatHistory] = useState([]);
+    const messagesEndRef = React.useRef(null);
+
+    const filteredUsers = users.filter(u => u.role === activeTab);
+
+    // Auto-select first user if available
+    useEffect(() => {
+        if (!selectedUserId && filteredUsers.length > 0) {
+            // setSelectedUserId(filteredUsers[0].id); // Optional: Auto-select
+        }
+    }, [activeTab]);
+
+    // Load Chat History
+    useEffect(() => {
+        if (selectedUserId) {
+            const history = getChats(user.id, selectedUserId);
+            setChatHistory(history);
+        } else {
+            setChatHistory([]);
+        }
+    }, [selectedUserId, user.id, getChats, users]); // Depend on users to re-render if new msg comes in via polling (conceptually) or state update
+
+    // Scroll to bottom
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
+
+    useEffect(() => {
+        scrollToBottom();
+    }, [chatHistory, selectedUserId]);
+
+    const handleSend = (e) => {
+        e.preventDefault();
+        if (!newMessage.trim() || !selectedUserId) return;
+
+        sendMessage({
+            senderId: user.id,
+            receiverId: selectedUserId,
+            text: newMessage,
+            read: false
+        });
+
+        setNewMessage('');
+        // Optimistic update or wait for re-render from context
+        const updated = getChats(user.id, selectedUserId); // Re-fetch to be safe
+        setChatHistory(updated);
+    };
+
+    return (
+        <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '20px', height: 'calc(100vh - 180px)' }}>
+            {/* Sidebar: User List */}
+            <div className="dash-card" style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ display: 'flex' }}>
+                    <button
+                        onClick={() => setActiveTab('student')}
+                        style={{ flex: 1, padding: '15px', border: 'none', background: activeTab === 'student' ? 'var(--primary)' : '#eee', fontWeight: 'bold', cursor: 'pointer', borderBottom: '2px solid black' }}
+                    >
+                        STUDENTS
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('teacher')}
+                        style={{ flex: 1, padding: '15px', border: 'none', background: activeTab === 'teacher' ? 'var(--secondary)' : '#eee', fontWeight: 'bold', cursor: 'pointer', borderBottom: '2px solid black' }}
+                    >
+                        TEACHERS
+                    </button>
+                </div>
+
+                <div style={{ overflowY: 'auto', flex: 1, background: 'white' }}>
+                    {filteredUsers.map(u => (
+                        <div
+                            key={u.id}
+                            onClick={() => setSelectedUserId(u.id)}
+                            style={{
+                                padding: '15px', borderBottom: '1px solid #eee', cursor: 'pointer',
+                                background: selectedUserId === u.id ? '#f0f0f0' : 'white',
+                                fontWeight: selectedUserId === u.id ? 'bold' : 'normal'
+                            }}
+                        >
+                            <div>{u.name}</div>
+                            <div style={{ fontSize: '0.8rem', color: 'gray' }}>{u.email}</div>
+                        </div>
+                    ))}
+                    {filteredUsers.length === 0 && <div style={{ padding: '20px', color: 'gray', textAlign: 'center' }}>No {activeTab}s found.</div>}
+                </div>
+            </div>
+
+            {/* Chat Window */}
+            <div className="dash-card" style={{ padding: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                {selectedUserId ? (
+                    <>
+                        <div style={{ padding: '15px', background: '#eee', borderBottom: '2px solid black', fontWeight: 'bold' }}>
+                            Messaging: {users.find(u => u.id === selectedUserId)?.name || selectedUserId}
+                        </div>
+
+                        <div style={{ flex: 1, padding: '20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px', background: '#f9f9f9' }}>
+                            {chatHistory.map((msg, idx) => {
+                                const isMe = msg.senderId === user.id;
+                                return (
+                                    <div key={idx} style={{ alignSelf: isMe ? 'flex-end' : 'flex-start', maxWidth: '75%' }}>
+                                        <div style={{
+                                            padding: '12px 16px',
+                                            background: isMe ? 'black' : 'white',
+                                            color: isMe ? 'white' : 'black',
+                                            border: '2px solid black',
+                                            boxShadow: '3px 3px 0 rgba(0,0,0,0.1)',
+                                            borderRadius: '4px'
+                                        }}>
+                                            {msg.text}
+                                        </div>
+                                        <div style={{ fontSize: '0.7rem', color: '#666', marginTop: '4px', textAlign: isMe ? 'right' : 'left' }}>
+                                            {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                            <div ref={messagesEndRef} />
+                        </div>
+
+                        <form onSubmit={handleSend} style={{ padding: '20px', background: 'white', borderTop: '2px solid black', display: 'flex', gap: '10px' }}>
+                            <input
+                                value={newMessage}
+                                onChange={e => setNewMessage(e.target.value)}
+                                placeholder="Type a message..."
+                                style={{ flex: 1, padding: '12px', border: '2px solid black' }}
+                            />
+                            <button className="auth-button" style={{ width: 'auto', marginTop: 0, padding: '0 30px' }}>SEND</button>
+                        </form>
+                    </>
+                ) : (
+                    <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'gray' }}>Select a user to start messaging.</div>
+                )}
+            </div>
+        </div>
+    );
+};
+
 const AddCourseView = ({ onComplete }) => {
     const { addCourse, updateCourse, assignTeacher, updateCourseAssignment, users, courses, courseAssignments, enrollments } = useData();
     const [viewMode, setViewMode] = useState('add');
@@ -922,17 +1066,11 @@ export default function AdminDashboard() {
                     <Menu id="add-books" label="ADD BOOKS" />
                     <Menu id="add-courses" label="ADD COURSES" />
                     <Menu id="manage-courses" label="MANAGE LINKS" />
+                    <Menu id="chat" label="CHAT CONSOLE" />
                 </div>
 
                 <div style={{ marginTop: 'auto' }}>
-                    <div
-                        className="admin-nav-item"
-                        style={{ marginBottom: '10px', border: '2px solid black', background: darkMode ? 'white' : 'black', color: darkMode ? 'black' : 'white', cursor: 'pointer', textAlign: 'center', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}
-                        onClick={toggleTheme}
-                    >
-                        <span className="material-icons" style={{ fontSize: '1.2rem' }}>{darkMode ? 'light_mode' : 'dark_mode'}</span>
-                        {darkMode ? 'LIGHT MODE' : 'DARK MODE'}
-                    </div>
+
                     <div className="admin-nav-item" style={{ border: '2px solid red', color: 'red' }} onClick={logout}>
                         LOGOUT
                     </div>
@@ -950,6 +1088,7 @@ export default function AdminDashboard() {
                 {activeTab === 'add-books' && <AddBookView />}
                 {activeTab === 'add-courses' && <AddCourseView onComplete={() => setActiveTab('manage-courses')} />}
                 {activeTab === 'manage-courses' && <ManageCoursesView />}
+                {activeTab === 'chat' && <AdminChatView />}
             </main>
         </div>
     );

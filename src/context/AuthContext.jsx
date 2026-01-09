@@ -125,13 +125,23 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('user');
   };
 
+  const refreshUser = () => {
+    if (!user) return;
+    const users = JSON.parse(localStorage.getItem('users') || '[]');
+    const freshUser = users.find(u => u.id === user.id);
+    if (freshUser) {
+      setUser(freshUser);
+      localStorage.setItem('user', JSON.stringify(freshUser));
+    }
+  };
+
   const resetData = () => {
     localStorage.clear();
     window.location.reload();
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, signup, logout, resetData, loading }}>
+    <AuthContext.Provider value={{ user, login, signup, logout, resetData, refreshUser, loading }}>
       {/* Prevent flash of login screen by waiting for init */}
       {loading ? null : children}
     </AuthContext.Provider>

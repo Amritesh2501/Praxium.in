@@ -15,178 +15,76 @@ export const DataProvider = ({ children }) => {
     const [meetings, setMeetings] = useState([]);
     const [chats, setChats] = useState([]);
 
+    // --- Persistence Helper ---
+    const API_BASE = 'http://localhost:3000/api/data';
+
+    const loadData = async (key, setter, defaultVal = []) => {
+        try {
+            const res = await fetch(`${API_BASE}/${key}`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data !== null) {
+                    setter(data);
+                    return;
+                }
+            }
+            throw new Error('API returned null or error');
+        } catch (err) {
+            console.log(`Loading ${key} from LocalStorage (Fallback)`);
+            const local = localStorage.getItem(key);
+            if (local) {
+                setter(JSON.parse(local));
+            } else {
+                setter(defaultVal);
+            }
+        }
+    };
+
+    const saveData = async (key, data) => {
+        try {
+            await fetch(`${API_BASE}/${key}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+            });
+        } catch (err) {
+            console.error(`Failed to save ${key}`, err);
+            // Fallback to localStorage just in case?
+            // localStorage.setItem(key, JSON.stringify(data)); 
+        }
+    };
+
+    // --- Initialization ---
     // --- Initialization ---
     useEffect(() => {
-        // Load legacy data or initialize defaults
-        const storedUsers = JSON.parse(localStorage.getItem('users') || '[]');
-        setUsers(storedUsers);
+        const init = async () => {
+            await loadData('users', setUsers);
+            await loadData('courses', setCourses);
+            await loadData('books', setBooks);
+            await loadData('enrollments', setEnrollments);
+            await loadData('courseAssignments', setCourseAssignments);
+            await loadData('courseBooks', setCourseBooks);
+            await loadData('meetings', setMeetings);
+            await loadData('chats', setChats);
+            await loadData('suggestedCourses', setSuggestedCourses);
 
-        // We are transitioning to a more relational model, so we might need to migrate or just start fresh for new entities if structure changed.
-        // For this task, we will try to persist everything in localStorage keys for persistence between reloads.
-        const storedCourses = JSON.parse(localStorage.getItem('courses') || '[]');
-
-        // Seed OR Force Update Machine Learning Course (id: ml-101)
-        const detailedMLCourse = {
-            id: 'ml-101',
-            title: 'Machine Learning',
-            description: 'A comprehensive guide to ML algorithms, neural networks, and deep learning.',
-            modules: [
-                {
-                    title: '1. Introduction to ML',
-                    videoId: 'KNAWp2S3w94', // Andrew Ng: What is Machine Learning?
-                    content: `# Introduction to Machine Learning
-**Machine Learning (ML)** is a field of inquiry devoted to understanding and building methods that 'learn', that is, methods that leverage data to improve performance on some set of tasks.
-
-### Types of Machine Learning
-| Type | Description | Examples |
-| :--- | :--- | :--- |
-| **Supervised** | Learning with labeled data. | Spam filtering, House price prediction |
-| **Unsupervised** | Learning with unlabeled data. | Customer segmentation, Anomaly detection |
-| **Reinforcement** | Learning via trial and error. | Game playing (Chess, Go), Robot navigation |
-
-### Key Terminology
-*   **Features:** The input variables (X) used for prediction.
-*   **Target:** The output variable (y) to be predicted.
-*   **Model:** The mathematical representation of the real-world process.
-`
-                },
-                {
-                    title: '2. Linear Regression',
-                    videoId: 'nk2CQITm_eo', // Andrew Ng: Linear Regression
-                    content: `# Linear Regression
-Linear regression is a linear approach for modelling the relationship between a scalar response and one or more explanatory variables.
-
-### The Equation
-The hypothesis function for linear regression is:
-$$ h_\\theta(x) = \\theta_0 + \\theta_1 x $$
-
-### Python Implementation
-\`\`\`python
-import numpy as np
-from sklearn.linear_model import LinearRegression
-
-# Sample Data
-X = np.array([[1], [2], [3], [4]])
-y = np.array([2, 4, 6, 8])
-
-# Model Training
-model = LinearRegression()
-model.fit(X, y)
-
-# Prediction
-print(f"Prediction for 5: {model.predict([[5]])}")
-# Output: Prediction for 5: [10.]
-\`\`\`
-`
-                },
-                {
-                    title: '3. Neural Networks',
-                    videoId: 'aircAruvnKk', // 3Blue1Brown: But what is a Neural Network?
-                    content: `# Neural Networks
-Neural networks are a set of algorithms, modeled loosely after the human brain, that are designed to recognize patterns.
-
-### Perceptron
-The simplest unit of a neural network. It takes inputs, applies weights, sums them up, adds a bias, and passes the result through an activation function.
-
-### Common Activation Functions
-1.  **Sigmoid:** Maps input to (0, 1). Used for binary classification.
-2.  **ReLU (Rectified Linear Unit):** $f(x) = max(0, x)$. Most common in hidden layers.
-3.  **Softmax:** Converts a vector of numbers into a vector of probabilities.
-
-![Neural Network Diagram](https://upload.wikimedia.org/wikipedia/commons/thumb/4/46/Colored_neural_network.svg/1200px-Colored_neural_network.svg.png)
-*(Image source: Wikimedia Commons)*
-`
-                },
-                {
-                    title: '4. Deep Learning & CNNs',
-                    videoId: 'py5byOOHZM8', // Computerphile: CNNs
-                    content: `# Deep Learning: Convolutional Neural Networks (CNNs)
-Convolutional Neural Networks (CNNs) are a class of deep neural networks, most commonly applied to analyzing visual imagery.
-
-### Layers of a CNN
-1.  **Convolutional Layer:** Applies filters (kernels) to the input image to create feature maps.
-2.  **Pooling Layer:** Reduces the spatial size of the representation (e.g., Max Pooling).
-3.  **Fully Connected Layer:** Connects every neuron in one layer to every neuron in another layer.
-`
-                },
-                {
-                    title: '5. Ethics in AI',
-                    videoId: 'CfzOB67183rI', // Ted Talk: AI Ethics (generic ID used as placeholder if specific not known, but checking typical length) -> 'CfzOB67183rI' is invalid, replacing with valid TED ID 'GZ69rW16u8M' (How to keep human bias out of AI)
-                    videoId: 'GZ69rW16u8M',
-                    content: `# Ethics in Artificial Intelligence
-As AI becomes more prevalent, ethical considerations become paramount.
-
-### Key Issues
-*   **Bias and Fairness:** AI systems can perpetuate and amplify existing social biases.
-*   **Privacy:** Collection and use of vast amounts of personal data.
-*   **Accountability:** Who is responsible when an AI system makes a mistake?
-`
-                },
-                {
-                    title: '6. Case Study: Housing Prices',
-                    videoId: 'WfrM4C6wT_w',
-                    content: `# Case Study: Predicting Housing Prices
-In this case study, we will explore how to build a model to predict house prices based on various features like size, location, and number of rooms.
-
-### Dataset Overview
-| Size (sq ft) | Bedrooms | Age (years) | Price ($) |
-| :--- | :--- | :--- | :--- |
-| 2104 | 3 | 10 | 399,900 |
-| 1600 | 3 | 25 | 329,900 |
-| 2400 | 3 | 5 | 369,000 |
-
-### Steps
-1.  **Data Cleaning:** Handle missing values and outliers.
-2.  **Feature Engineering:** extensive use of one-hot encoding for categorical variables.
-3.  **Model Selection:** We start with Linear Regression and then try Random Forest.
-4.  **Evaluation:** Use RMSE (Root Mean Squared Error) to measure accuracy.
-
-### Conclusion
-The Random Forest model outperformed Linear Regression by capturing non-linear relationships in the data.
-`
-                }
-            ],
-            isAI: false
+            // Theme Init
+            const isDark = localStorage.getItem('darkMode') === 'true';
+            if (isDark) document.body.classList.add('dark-mode');
+            setDarkMode(isDark);
         };
-
-        const existingMLIndex = storedCourses.findIndex(c => c.id === 'ml-101');
-        if (existingMLIndex !== -1) {
-            // Force update existing course content
-            storedCourses[existingMLIndex] = { ...storedCourses[existingMLIndex], ...detailedMLCourse };
-        } else {
-            // Add if missing
-            storedCourses.push(detailedMLCourse);
-        }
-        localStorage.setItem('courses', JSON.stringify(storedCourses));
-
-        setCourses(storedCourses);
-        setBooks(JSON.parse(localStorage.getItem('books') || '[]'));
-        setEnrollments(JSON.parse(localStorage.getItem('enrollments') || '[]'));
-        setMeetings(JSON.parse(localStorage.getItem('meetings') || '[]'));
-        setChats(JSON.parse(localStorage.getItem('chats') || '[]'));
-
-        // Theme Init
-        const isDark = localStorage.getItem('darkMode') === 'true';
-        if (isDark) document.body.classList.add('dark-mode');
-        setDarkMode(isDark);
+        init();
     }, []);
-
-    // --- Persistence Helper ---
-    const saveData = (key, data) => {
-        localStorage.setItem(key, JSON.stringify(data));
-    };
 
     // --- Actions ---
 
     // 1. Users
     const addUser = (userData, initialCourseId = null) => {
-        const storedUsers = JSON.parse(localStorage.getItem('users') || '[]');
-
         // Generate Registration ID
         const year = new Date().getFullYear();
         const rolePrefix = userData.role === 'admin' ? 'ADM' : userData.role === 'teacher' ? 'FAC' : 'STD';
         // Simple sequential ID based on array length + 1 (padded)
-        const count = storedUsers.filter(u => u.role === userData.role).length + 1;
+        const count = users.filter(u => u.role === userData.role).length + 1;
         const regId = `${rolePrefix}-${year}-${String(count).padStart(3, '0')}`;
 
         const newUser = {
@@ -198,9 +96,10 @@ The Random Forest model outperformed Linear Regression by capturing non-linear r
             permissions: userData.permissions || 'standard'
         };
 
-        const updatedUsers = [...storedUsers, newUser];
+        const updatedUsers = [...users, newUser]; // Fixed variable name from storedUsers to users
         setUsers(updatedUsers);
         localStorage.setItem('users', JSON.stringify(updatedUsers));
+        saveData('users', updatedUsers); // Persist to backend
 
         if (initialCourseId && newUser.role === 'student') { // Changed from userData.role to newUser.role
             enrollStudent(initialCourseId, newUser.id);
@@ -215,20 +114,92 @@ The Random Forest model outperformed Linear Regression by capturing non-linear r
         const updatedUsers = users.map(u => u.id === id ? { ...u, ...updates } : u);
         setUsers(updatedUsers);
         localStorage.setItem('users', JSON.stringify(updatedUsers));
+        saveData('users', updatedUsers); // Persist to backend
 
-        // If updating currently logged in user, update that state too
+        // Sync with Auth Context storage if this is the current user
+        const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
         if (currentUser && currentUser.id === id) {
             const updatedUser = updatedUsers.find(u => u.id === id);
-            setCurrentUser(updatedUser);
-            localStorage.setItem('currentUser', JSON.stringify(updatedUser)); // Persist login session update
+            localStorage.setItem('user', JSON.stringify(updatedUser)); // AuthContext reads this on refresh
         }
     };
+
+
 
     const markCourseComplete = (studentId, courseId) => {
         const student = users.find(u => u.id === studentId);
         if (student && !student.completedCourses?.includes(courseId)) {
             const updatedCompleted = [...(student.completedCourses || []), courseId];
-            updateUser(studentId, { completedCourses: updatedCompleted });
+
+            // Generate Certificate
+            const course = courses.find(c => c.id === courseId);
+            const certificate = {
+                id: `cert-${Date.now()}`,
+                type: 'certificate',
+                title: `Certified in ${course ? course.title : 'Course'}`,
+                description: `Successfully completed all modules of ${course ? course.title : 'the course'}.`,
+                date: new Date().toISOString(),
+                icon: 'workspace_premium'
+            };
+
+            const updatedAchievements = [...(student.achievements || []), certificate];
+            updateUser(studentId, { completedCourses: updatedCompleted, achievements: updatedAchievements });
+
+            // Check for Milestone Medals
+            if (updatedCompleted.length === 1) awardBadge(studentId, 'first_course', { title: 'First Steps', description: 'Completed your first course!', icon: 'school' });
+            if (updatedCompleted.length === 5) awardBadge(studentId, 'high_flyer', { title: 'High Flyer', description: 'Completed 5 courses.', icon: 'flight_takeoff' });
+        }
+    };
+
+    const awardBadge = (userId, badgeId, meta = {}) => {
+        const student = users.find(u => u.id === userId);
+        if (!student) return;
+
+        // Prevent duplicate medals unless allowed (e.g. streaks can be upgraded, but here we keep simple unique medals)
+        const currentAchievements = student.achievements || [];
+        if (currentAchievements.some(a => a.id === badgeId)) return;
+
+        const newBadge = {
+            id: badgeId,
+            type: 'medal',
+            title: meta.title || 'Achievement Unlocked',
+            description: meta.description || 'You earned a new badge!',
+            date: meta.date || new Date().toISOString(),
+            icon: meta.icon || 'military_tech'
+        };
+
+        const updatedAchievements = [...currentAchievements, newBadge];
+        updateUser(userId, { achievements: updatedAchievements });
+    };
+
+    const checkStreaks = (userId) => {
+        const student = users.find(u => u.id === userId);
+        if (!student) return;
+
+        const today = new Date().toDateString();
+        const lastLogin = student.lastLoginDate ? new Date(student.lastLoginDate).toDateString() : null;
+
+        let newStreak = student.currentStreak || 0;
+
+        if (lastLogin !== today) {
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+
+            if (lastLogin === yesterday.toDateString()) {
+                newStreak += 1;
+            } else {
+                newStreak = 1;
+            }
+
+            updateUser(userId, { lastLoginDate: new Date().toISOString(), currentStreak: newStreak });
+
+            if (newStreak > 0 && newStreak % 20 === 0) {
+                awardBadge(userId, `streak_${newStreak}`, {
+                    title: `${newStreak} Day Streak`,
+                    description: `Logged in for ${newStreak} consecutive days!`,
+                    icon: 'local_fire_department'
+                });
+            }
         }
     };
 
@@ -236,6 +207,7 @@ The Random Forest model outperformed Linear Regression by capturing non-linear r
         const updatedUsers = users.filter(u => u.id !== id);
         setUsers(updatedUsers);
         localStorage.setItem('users', JSON.stringify(updatedUsers));
+        saveData('users', updatedUsers);
     };
 
     // 2. Courses
@@ -248,25 +220,20 @@ The Random Forest model outperformed Linear Regression by capturing non-linear r
     };
 
     // AI Suggested Courses Management
-    const [suggestedCourses, setSuggestedCourses] = useState(() => {
-        const saved = localStorage.getItem('suggestedCourses');
-        return saved ? JSON.parse(saved) : [];
-    });
+    const [suggestedCourses, setSuggestedCourses] = useState([]);
 
     const addSuggestedCourse = (topic) => {
-        // Prevent duplicates
         if (suggestedCourses.some(c => c.title === topic)) return;
-
         const newCourse = {
             id: `ai-${Date.now()}`,
             title: topic,
             description: 'AI Generated Adaptive Course',
             isAI: true,
-            currentLevel: 1 // Start at Level 1
+            currentLevel: 1
         };
         const updated = [...suggestedCourses, newCourse];
         setSuggestedCourses(updated);
-        localStorage.setItem('suggestedCourses', JSON.stringify(updated));
+        saveData('suggestedCourses', updated);
     };
 
     const updateSuggestedProgress = (courseId, newLevel) => {
@@ -274,7 +241,7 @@ The Random Forest model outperformed Linear Regression by capturing non-linear r
             c.id === courseId ? { ...c, currentLevel: newLevel } : c
         );
         setSuggestedCourses(updated);
-        localStorage.setItem('suggestedCourses', JSON.stringify(updated));
+        saveData('suggestedCourses', updated);
     };
 
     const updateCourse = (id, updates) => {
@@ -316,14 +283,11 @@ The Random Forest model outperformed Linear Regression by capturing non-linear r
     };
 
     const updateCourseAssignment = (courseId, teacherId) => {
-        // Remove existing assignment for this course if any
         let updated = courseAssignments.filter(ca => ca.courseId !== courseId);
-
         if (teacherId) {
             const newAssignment = { id: Date.now().toString(), courseId, teacherId };
             updated = [...updated, newAssignment];
         }
-
         setCourseAssignments(updated);
         saveData('courseAssignments', updated);
     };
@@ -341,6 +305,7 @@ The Random Forest model outperformed Linear Regression by capturing non-linear r
     const scheduleMeeting = (meetingData) => {
         const newMeeting = { ...meetingData, id: Date.now().toString() };
         const updated = [...meetings, newMeeting];
+        setMeetings(updated);
         saveData('meetings', updated);
     };
 
@@ -403,13 +368,24 @@ The Random Forest model outperformed Linear Regression by capturing non-linear r
         return users.filter(u => uniqueStudentIds.includes(u.id));
     };
 
+    // Get all teachers associated with a student (through all their shared courses)
+    const getTeachersForStudent = (studentId) => {
+        const studentCourseIds = enrollments.filter(e => e.studentId === studentId).map(e => e.courseId);
+        const teacherIds = courseAssignments
+            .filter(ca => studentCourseIds.includes(ca.courseId))
+            .map(ca => ca.teacherId);
+        // unique teachers
+        const uniqueTeacherIds = [...new Set(teacherIds)];
+        return users.filter(u => uniqueTeacherIds.includes(u.id));
+    };
+
     return (
         <DataContext.Provider value={{
             users, courses, books, enrollments, courseAssignments, courseBooks, meetings, chats, darkMode, suggestedCourses,
             addUser, updateUser, deleteUser, markCourseComplete,
             addCourse, updateCourse, updateCourseAssignment, addBook, enrollStudent, assignTeacher, addBookToCourse, scheduleMeeting, sendMessage, toggleTheme,
-            addSuggestedCourse, updateSuggestedProgress,
-            getStudentsForCourse, getCoursesForStudent, getCoursesForTeacher, getBooksForCourse, getStudentsForTeacher, getChats
+            addSuggestedCourse, updateSuggestedProgress, awardBadge, checkStreaks,
+            getStudentsForCourse, getCoursesForStudent, getCoursesForTeacher, getBooksForCourse, getStudentsForTeacher, getTeachersForStudent, getChats
         }}>
             {children}
         </DataContext.Provider>

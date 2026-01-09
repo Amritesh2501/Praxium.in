@@ -7,26 +7,35 @@ export default function AuthPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
     const { login, signup } = useAuth();
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+        setIsLoading(true);
 
-        if (isLogin) {
-            const res = login(email, password);
-            if (!res.success) {
-                setError(res.message);
+        try {
+            if (isLogin) {
+                const res = await login(email, password);
+                if (!res.success) {
+                    setError(res.message);
+                }
+            } else {
+                if (!name) {
+                    setError('Name is required');
+                    setIsLoading(false);
+                    return;
+                }
+                const res = await signup(name, email, password);
+                if (!res.success) {
+                    setError(res.message);
+                }
             }
-        } else {
-            if (!name) {
-                setError('Name is required');
-                return;
-            }
-            const res = signup(name, email, password);
-            if (!res.success) {
-                setError(res.message);
-            }
+        } catch (err) {
+            setError(err.message || 'An error occurred');
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -86,7 +95,7 @@ export default function AuthPage() {
                     </div>
 
                     <button type="submit" className="auth-button">
-                        {isLogin ? 'Sign In' : 'Sign Up'}
+                        {isLogin ? (isLoading ? 'Signing In...' : 'Sign In') : (isLoading ? 'Creating Account...' : 'Sign Up')}
                     </button>
                 </form>
 

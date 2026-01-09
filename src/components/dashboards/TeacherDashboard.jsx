@@ -496,21 +496,13 @@ export default function TeacherDashboard() {
                 <div style={{ marginTop: 'auto' }}>
                     <div
                         className="admin-nav-item"
-                        style={{ marginBottom: '10px', border: '2px solid black', background: darkMode ? 'white' : 'black', color: darkMode ? 'black' : 'white', cursor: 'pointer', textAlign: 'center', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}
-                        onClick={toggleTheme}
-                    >
-                        <span className="material-icons" style={{ fontSize: '1.2rem' }}>{darkMode ? 'light_mode' : 'dark_mode'}</span>
-                        {darkMode ? 'LIGHT MODE' : 'DARK MODE'}
-                    </div>
-                    <div
-                        className="admin-nav-item"
                         style={{ border: '2px solid white', color: 'white', background: 'var(--accent)' }}
                         onClick={logout}
                     >
                         LOGOUT
                     </div>
                 </div>
-            </nav>
+            </nav >
 
             <main className="admin-main">
                 <header style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -524,6 +516,6 @@ export default function TeacherDashboard() {
                 {activeTab === 'meetings' && <MeetingView />}
                 {activeTab === 'chat' && <ChatView />}
             </main>
-        </div>
+        </div >
     );
 }

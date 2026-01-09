@@ -1,0 +1,22 @@
+[
+  {
+    "id": "e1",
+    "studentId": "STD-2026-001",
+    "courseId": "c1"
+  },
+  {
+    "id": "e2",
+    "studentId": "STD-2026-001",
+    "courseId": "c2"
+  },
+  {
+    "id": "1767903454019",
+    "courseId": "c2",
+    "studentId": "STD-2026-002"
+  },
+  {
+    "id": "1767903456049",
+    "courseId": "c1",
+    "studentId": "STD-2026-002"
+  }
+]

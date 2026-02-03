@@ -1,32 +1,104 @@
 [
-    {
-        "id": "STD-2026-001",
-        "name": "Alex Student",
-        "email": "alex@praxium.ai",
-        "role": "student",
-        "password": "password123",
-        "streak": 5,
-        "permissions": "standard",
-        "completedCourses": []
-    },
-    {
-        "id": "student1",
-        "name": "Student John",
-        "email": "student@praxium.ai",
-        "role": "student",
-        "password": "password",
-        "permissions": "standard",
-        "completedCourses": [],
-        "achievements": []
-    },
-    {
-        "id": "henry_student",
-        "name": "Henry",
-        "email": "henry.student@praxium.ai",
-        "role": "student",
-        "password": "password",
-        "permissions": "standard",
-        "completedCourses": [],
-        "achievements": []
+  {
+    "id": "ADM-001",
+    "name": "System Admin",
+    "email": "admin@praxium.ai",
+    "role": "admin",
+    "password": "adminpassword",
+    "permissions": "all",
+    "completedCourses": []
+  },
+  {
+    "id": "FAC-001",
+    "name": "Prof. Dumbledore",
+    "email": "prof.dumbledore@praxium.ai",
+    "role": "teacher",
+    "password": "teacherpassword",
+    "permissions": "standard",
+    "completedCourses": []
+  },
+  {
+    "id": "STD-2026-001",
+    "name": "Alex Student",
+    "email": "alex.student@praxium.ai",
+    "role": "student",
+    "password": "password123",
+    "streak": 5,
+    "permissions": "standard",
+    "completedCourses": []
+  },
+  {
+    "id": "student1",
+    "name": "Student John",
+    "email": "student.john@praxium.ai",
+    "role": "student",
+    "password": "password",
+    "permissions": "standard",
+    "completedCourses": [],
+    "achievements": []
+  },
+  {
+    "id": "henry_student",
+    "name": "Henry",
+    "email": "henry@praxium.ai",
+    "role": "student",
+    "password": "12345678",
+    "permissions": "standard",
+    "completedCourses": [],
+    "achievements": [],
+    "lastLoginDate": "2026-01-29T13:18:01.058Z",
+    "currentStreak": 1
+  },
+  {
+    "name": "john doe",
+    "email": "john@praxium.ai",
+    "password": "123456789",
+    "role": "teacher",
+    "permissions": "standard",
+    "phone": "",
+    "id": "FAC-2026-002",
+    "photo": null,
+    "completedCourses": []
+  },
+  {
+    "name": "richard",
+    "email": "richard@praxium.ai",
+    "password": "12345678",
+    "role": "student",
+    "permissions": "standard",
+    "phone": "",
+    "id": "STD-2026-004",
+    "photo": null,
+    "completedCourses": [],
+    "lastLoginDate": "2026-02-03T08:46:31.353Z",
+    "currentStreak": 1,
+    "completedModules": {
+      "c2": [
+        "Custom Hooks"
+      ]
     }
+  },
+  {
+    "id": "FAC-2026-003",
+    "name": "Sarah Connor",
+    "email": "sarah.connor@praxium.ai",
+    "role": "teacher",
+    "password": "password",
+    "permissions": "standard",
+    "completedCourses": [],
+    "photo": null,
+    "lastLoginDate": "2026-01-29T23:25:00.000Z"
+  },
+  {
+    "id": "STD-2026-005",
+    "name": "Kyle Reese",
+    "email": "kyle.reese@praxium.ai",
+    "role": "student",
+    "password": "password",
+    "permissions": "standard",
+    "completedCourses": [],
+    "achievements": [],
+    "lastLoginDate": "2026-01-29T23:25:00.000Z",
+    "streak": 3
+  }
 ]

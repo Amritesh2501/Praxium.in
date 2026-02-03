@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import ChatInput from '../ChatInput';
@@ -17,7 +17,116 @@ const AILoadingScreen = ({ title, subtitle }) => (
     </div>
 );
 
-const OverviewPanel = ({ user, myCourses }) => {
+const HelpView = () => {
+    const { user } = useAuth();
+    const { addTicket, tickets, openModal } = useData();
+    const [subTab, setSubTab] = useState('faq'); // faq, new, history
+    const [newTicket, setNewTicket] = useState({ subject: '', description: '', type: 'General' });
+
+    const myTickets = tickets.filter(t => t.userId === user.id);
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        addTicket({ ...newTicket, userId: user.id });
+        setNewTicket({ subject: '', description: '', type: 'General' });
+        openModal({
+            title: "Ticket Submitted",
+            message: "An admin will review it shortly.",
+            type: 'info'
+        });
+        setSubTab('history');
+    };
+
+    return (
+        <div className="fade-in">
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+                <button onClick={() => setSubTab('faq')} style={{ padding: '10px 20px', fontWeight: 'bold', border: '2px solid black', background: subTab === 'faq' ? 'black' : 'white', color: subTab === 'faq' ? 'white' : 'black', cursor: 'pointer' }}>FAQs</button>
+                <button onClick={() => setSubTab('new')} style={{ padding: '10px 20px', fontWeight: 'bold', border: '2px solid black', background: subTab === 'new' ? 'black' : 'white', color: subTab === 'new' ? 'white' : 'black', cursor: 'pointer' }}>Open Ticket</button>
+                <button onClick={() => setSubTab('history')} style={{ padding: '10px 20px', fontWeight: 'bold', border: '2px solid black', background: subTab === 'history' ? 'black' : 'white', color: subTab === 'history' ? 'white' : 'black', cursor: 'pointer' }}>My Tickets</button>
+            </div>
+
+            {subTab === 'faq' && (
+                <div className="dash-card">
+                    <h3>Frequently Asked Questions</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '15px' }}>
+                        <div style={{ borderBottom: '1px solid #ddd', paddingBottom: '10px' }}>
+                            <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>How do I reset my password?</div>
+                            <div style={{ color: 'gray' }}>Contact your student administrator or submit a ticket to request a reset.</div>
+                        </div>
+                        <div style={{ borderBottom: '1px solid #ddd', paddingBottom: '10px' }}>
+                            <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>How does the AI Course work?</div>
+                            <div style={{ color: 'gray' }}>Our AI analyzes your quiz results and automatically generates new learning modules tailored to your weak areas.</div>
+                        </div>
+                        <div style={{ borderBottom: '1px solid #ddd', paddingBottom: '10px' }}>
+                            <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>Can I retake a quiz?</div>
+                            <div style={{ color: 'gray' }}>Yes, you can revisit any module and retake the quiz to improve your score.</div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {subTab === 'new' && (
+                <div className="dash-card" style={{ maxWidth: '600px' }}>
+                    <h3>Submit a Support Ticket</h3>
+                    <form onSubmit={handleSubmit} style={{ marginTop: '20px' }}>
+                        <div className="form-group">
+                            <label>Issue Type</label>
+                            <select
+                                value={newTicket.type}
+                                onChange={e => setNewTicket({ ...newTicket, type: e.target.value })}
+                                style={{ width: '100%', padding: '12px', border: '2px solid black' }}
+                            >
+                                <option>General</option>
+                                <option>Technical Issue</option>
+                                <option>Course Content</option>
+                                <option>Account Access</option>
+                            </select>
+                        </div>
+                        <div className="form-group">
+                            <label>Subject</label>
+                            <input required placeholder="Brief summary of the issue" value={newTicket.subject} onChange={e => setNewTicket({ ...newTicket, subject: e.target.value })} style={{ width: '100%', padding: '12px', border: '2px solid black' }} />
+                        </div>
+                        <div className="form-group">
+                            <label>Description</label>
+                            <textarea required rows="5" placeholder="Please describe your issue in detail..." value={newTicket.description} onChange={e => setNewTicket({ ...newTicket, description: e.target.value })} style={{ width: '100%', padding: '12px', border: '2px solid black', fontFamily: 'inherit' }} />
+                        </div>
+                        <button className="auth-button" style={{ marginTop: '10px' }}>SUBMIT TICKET</button>
+                    </form>
+                </div>
+            )}
+
+            {subTab === 'history' && (
+                <div className="dash-card">
+                    <h3>My Support Tickets</h3>
+                    <div style={{ marginTop: '20px' }}>
+                        {myTickets.map(t => (
+                            <div key={t.id} style={{ padding: '15px', border: '2px solid black', marginBottom: '15px', background: t.status === 'Solved' ? '#e8f5e9' : '#fff' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
+                                    <span style={{ fontWeight: 'bold' }}>{t.subject}</span>
+                                    <span style={{
+                                        padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 'bold',
+                                        background: t.status === 'Solved' ? 'green' : 'orange', color: 'white'
+                                    }}>{t.status.toUpperCase()}</span>
+                                </div>
+                                <div style={{ fontSize: '0.9rem', color: 'gray', marginBottom: '10px' }}>{new Date(t.date).toLocaleDateString()} • {t.type}</div>
+                                <div>{t.description}</div>
+                            </div>
+                        ))}
+                        {myTickets.length === 0 && <p>No tickets submit yet.</p>}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+const OverviewPanel = ({ user, myCourses, onNavigate }) => {
+    const { courses, enrollStudent, openModal } = useData();
+
+    // Discover New Courses Logic
+    const enrolledIds = myCourses.map(c => c.id);
+    const discoverableCourses = courses.filter(c => !enrolledIds.includes(c.id)).slice(0, 6); // Show top 6
+
     // Dynamic Suggestion
     const latestSuggestion = user.suggestedCourses && user.suggestedCourses.length > 0
         ? user.suggestedCourses[user.suggestedCourses.length - 1]
@@ -28,6 +137,15 @@ const OverviewPanel = ({ user, myCourses }) => {
     const progressLevel = activeCourse ? (activeCourse.currentLevel || 1) : 0;
     // Assuming max level 10 for progress bar visualization
     const progressPercent = Math.min((progressLevel / 10) * 100, 100);
+
+    const handleEnroll = (course) => {
+        enrollStudent(course.id, user.id);
+        openModal({
+            title: "Enrolled Successfully!",
+            message: `You are now enrolled in "${course.title}". Start learning today!`,
+            type: 'info'
+        });
+    };
 
     return (
         <div className="dashboard-grid fade-in">
@@ -100,6 +218,32 @@ const OverviewPanel = ({ user, myCourses }) => {
                             <div style={{ fontSize: '0.9rem', color: 'gray' }}>You're doing great!</div>
                         </div>
                     )}
+                </div>
+            </div>
+
+            {/* 5. Discover New Courses */}
+            <div className="dash-card" style={{ gridColumn: '1 / -1' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                    <h3 style={{ margin: 0 }}>Discover New Courses</h3>
+                    <button onClick={() => onNavigate('courses', { initialSubTab: 'catalog' })} style={{ background: 'none', border: 'none', color: 'blue', textDecoration: 'underline', cursor: 'pointer', fontWeight: 'bold' }}>VIEW ALL CATALOG</button>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+                    {discoverableCourses.map((c, idx) => (
+                        <div key={idx} className="hover-scale" style={{ padding: '20px', border: '2px solid black', background: 'white', boxShadow: '5px 5px 0 #eee' }}>
+                            <div style={{ fontWeight: 'bold', fontSize: '1.2rem', marginBottom: '5px' }}>{c.title.toUpperCase()}</div>
+                            <p style={{ fontSize: '0.9rem', color: 'gray', height: '40px', overflow: 'hidden' }}>{c.description}</p>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '15px' }}>
+                                <span style={{ fontWeight: 'bold', fontSize: '0.8rem' }}>{c.duration} WEEKS</span>
+                                <button
+                                    onClick={() => handleEnroll(c)}
+                                    style={{ padding: '8px 15px', background: 'var(--secondary)', color: 'white', border: '2px solid black', fontWeight: 'bold', cursor: 'pointer' }}
+                                >
+                                    ENROLL NOW
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                    {discoverableCourses.length === 0 && <p style={{ color: 'gray' }}>You've enrolled in everything! Check back later for new content.</p>}
                 </div>
             </div>
         </div>
@@ -185,32 +329,11 @@ const GamifiedLearningView = ({ course, onExit, openModal }) => {
                             <h3 style={{ fontSize: '1.8rem', marginBottom: '20px' }}>{levelData.lessonTitle}</h3>
 
                             {/* Video Section for Gamified View */}
-                            {levelData.videoId && levelData.videoId.length === 11 ? (
-                                <div style={{ marginBottom: '30px', border: '2px solid black', boxShadow: '4px 4px 0 black' }}>
-                                    <iframe
-                                        width="100%"
-                                        height="400"
-                                        src={`https://www.youtube.com/embed/${levelData.videoId}`}
-                                        title={levelData.lessonTitle}
-                                        frameBorder="0"
-                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                        allowFullScreen
-                                    ></iframe>
-                                </div>
-                            ) : (levelData.youtubeQuery || levelData.videoId) && (
-                                <div style={{ marginBottom: '30px', padding: '20px', border: '2px solid black', background: '#f9f9f9', textAlign: 'center' }}>
-                                    <span className="material-icons" style={{ fontSize: '2rem', color: 'red' }}>play_circle_filled</span>
-                                    <h3>Watch Video Lesson</h3>
-                                    <a
-                                        href={`https://www.youtube.com/results?search_query=${encodeURIComponent(levelData.youtubeQuery || levelData.lessonTitle + " tutorial")}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        style={{ display: 'inline-block', marginTop: '10px', padding: '10px 20px', background: 'red', color: 'white', textDecoration: 'none', fontWeight: 'bold', borderRadius: '4px' }}
-                                    >
-                                        SEARCH ON YOUTUBE
-                                    </a>
-                                </div>
-                            )}
+                            <SmartVideoPlayer
+                                videoId={levelData.videoId}
+                                title={levelData.lessonTitle}
+                                query={levelData.youtubeQuery || levelData.lessonTitle + " tutorial"}
+                            />
 
                             <div className="markdown-content" style={{ fontSize: '1.1rem', lineHeight: '1.7', marginBottom: '30px' }}>
                                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{levelData.lessonContent}</ReactMarkdown>
@@ -290,10 +413,231 @@ const getYouTubeVideoId = (urlOrId) => {
     return (match && match[2].length === 11) ? match[2] : null;
 };
 
-const StandardLessonView = ({ course, onExit }) => {
-    const [activeModule, setActiveModule] = useState(course.modules?.[0] || null);
+// --- Help Chat Modal ---
+const HelpChatModal = ({ isOpen, onClose, courseTitle, moduleTitle, moduleContent }) => {
+    const { user } = useAuth();
+    const [messages, setMessages] = useState([]);
+    const [input, setInput] = useState('');
+    const [isTyping, setIsTyping] = useState(false);
+    const messagesEndRef = useRef(null);
+
+    // Initial greeting
+    useEffect(() => {
+        if (isOpen && messages.length === 0) {
+            setMessages([{
+                id: 'intro',
+                sender: 'ai',
+                text: `Hi ${user.name}! I'm your AI tutor for "${moduleTitle}". What part can I explain better?`
+            }]);
+        }
+    }, [isOpen, moduleTitle, user.name]);
+
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
+
+    useEffect(() => {
+        scrollToBottom();
+    }, [messages, isOpen]);
+
+    const handleSend = async (e) => {
+        e.preventDefault();
+        if (!input.trim()) return;
+
+        const userMsg = { id: Date.now(), sender: 'user', text: input };
+        setMessages(prev => [...prev, userMsg]);
+        setInput('');
+        setIsTyping(true);
+
+        try {
+            // Import askTutor dynamically to avoid circular deps if any, or just use global
+            const { askTutor } = await import('../../services/aiService');
+            const responseText = await askTutor(courseTitle, moduleTitle, moduleContent, userMsg.text);
+
+            const aiMsg = { id: Date.now() + 1, sender: 'ai', text: responseText };
+            setMessages(prev => [...prev, aiMsg]);
+        } catch (error) {
+            console.error(error);
+            setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: "I'm having trouble connecting right now. Please try again." }]);
+        }
+        setIsTyping(false);
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <div style={{
+            position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+            background: 'rgba(0,0,0,0.5)', zIndex: 1100,
+            display: 'flex', justifyContent: 'center', alignItems: 'center'
+        }}>
+            <div className="dash-card" style={{ width: '90%', maxWidth: '500px', height: '600px', display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden', border: '4px solid black', boxShadow: '10px 10px 0 black' }}>
+                {/* Header */}
+                <div style={{ padding: '15px', background: 'var(--primary)', borderBottom: '2px solid black', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span className="material-icons">school</span>
+                        AI Tutor: {moduleTitle}
+                    </div>
+                    <button onClick={onClose} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>✕</button>
+                </div>
+
+                {/* Chat Area */}
+                <div style={{ flex: 1, padding: '20px', overflowY: 'auto', background: '#fffbeb' }}>
+                    {messages.map((msg, idx) => (
+                        <div key={idx} style={{
+                            marginBottom: '15px',
+                            textAlign: msg.sender === 'user' ? 'right' : 'left'
+                        }}>
+                            <div style={{
+                                display: 'inline-block',
+                                padding: '10px 15px',
+                                background: msg.sender === 'user' ? 'black' : 'white',
+                                color: msg.sender === 'user' ? 'white' : 'black',
+                                borderRadius: '8px',
+                                border: '2px solid black',
+                                maxWidth: '80%',
+                                textAlign: 'left'
+                            }}>
+                                <ReactMarkdown>{msg.text}</ReactMarkdown>
+                            </div>
+                        </div>
+                    ))}
+                    {isTyping && <div style={{ color: 'gray', fontStyle: 'italic' }}>AI is typing...</div>}
+                    <div ref={messagesEndRef} />
+                </div>
+
+                {/* Input */}
+                <form onSubmit={handleSend} style={{ padding: '15px', borderTop: '2px solid black', background: 'white', display: 'flex', gap: '10px' }}>
+                    <input
+                        value={input}
+                        onChange={e => setInput(e.target.value)}
+                        placeholder="Ask a question..."
+                        style={{ flex: 1, padding: '10px', border: '2px solid black' }}
+                    />
+                    <button type="submit" style={{ background: 'var(--secondary)', color: 'white', border: '2px solid black', fontWeight: 'bold', padding: '0 20px', cursor: 'pointer' }}>ASK</button>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+// --- Smart Video Player Component ---
+const SmartVideoPlayer = ({ videoId, title, query }) => {
+    // Robust Logic: 
+    // If we have a query, PREFER the search list because it's safer than pointing to a specific ID that might be dead.
+    const searchUrl = `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(query || title + " tutorial")}`;
+    const directUrl = videoId && videoId.length === 11 ? `https://www.youtube.com/embed/${videoId}` : null;
+
+    // Default to Search if query exists (safest for AI content), unless user specifically requested direct ID logic.
+    // Given the user compliant "fix unavailable issue", we default to search for robustness.
+    const [mode, setMode] = useState(query ? 'search' : 'direct');
+    const finalSrc = mode === 'search' ? searchUrl : (directUrl || searchUrl);
+
+    return (
+        <div style={{ marginBottom: '30px' }}>
+            <div style={{ border: '2px solid black', boxShadow: '8px 8px 0 black', position: 'relative', paddingBottom: '56.25%', height: 0, overflow: 'hidden', background: '#000' }}>
+                <iframe
+                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+                    src={finalSrc}
+                    title={title}
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                ></iframe>
+            </div>
+            <div style={{ padding: '10px', background: '#f5f5f5', border: '2px solid black', borderTop: 'none', display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
+                <div style={{ fontStyle: 'italic' }}>
+                    {mode === 'search' ? "Playing related search results." : "Playing specific video."}
+                </div>
+                <div>
+                    {directUrl && query && (
+                        <button
+                            onClick={() => setMode(mode === 'search' ? 'direct' : 'search')}
+                            style={{ background: 'transparent', border: 'none', color: 'blue', textDecoration: 'underline', cursor: 'pointer', marginRight: '15px' }}
+                        >
+                            {mode === 'search' ? "Try Specific Video" : "Switch to Search Results"}
+                        </button>
+                    )}
+                    <a
+                        href={`https://www.youtube.com/results?search_query=${encodeURIComponent(query || title)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: 'blue', textDecoration: 'underline', fontWeight: 'bold' }}
+                    >
+                        Watch on YouTube ↗
+                    </a>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const StandardLessonView = ({ course, onExit, openModal }) => {
+    const { user } = useAuth();
+    const { markCourseComplete, markModuleComplete, users } = useData();
+    const student = users.find(u => String(u.id).trim().toLowerCase() === String(user.id).trim().toLowerCase());
+    const courseIdKey = Object.keys(student?.completedModules || {}).find(k => k.trim().toLowerCase() === String(course.id).trim().toLowerCase()) || course.id;
+    const completedModules = student?.completedModules?.[courseIdKey] || [];
+
+    const storageKey = `last_active_module_${user.id}_${course.id}`;
+
+    // Load last active module from storage or default to first
+    const [activeModule, setActiveModule] = useState(() => {
+        const saved = localStorage.getItem(storageKey);
+        if (saved) {
+            const found = course.modules?.find(m => m.title === saved);
+            if (found) return found;
+        }
+        return course.modules?.[0] || null;
+    });
+
+    // Save active module whenever it changes
+    useEffect(() => {
+        if (activeModule) {
+            localStorage.setItem(storageKey, activeModule.title);
+        }
+    }, [activeModule, storageKey]);
+
     const [activeTab, setActiveTab] = useState('lecture'); // lecture, video, notes, tips
-    const videoId = getYouTubeVideoId(activeModule.videoId);
+    const [showHelp, setShowHelp] = useState(false);
+    const [isMarking, setIsMarking] = useState(false);
+
+    // Group modules by section
+    const sections = useMemo(() => {
+        const groups = {};
+        course.modules?.forEach((m, index) => {
+            const sectionName = m.section || "Introduction & Fundamentals";
+            if (!groups[sectionName]) groups[sectionName] = [];
+            groups[sectionName].push({ ...m, index });
+        });
+        return Object.entries(groups).map(([name, mods]) => ({ name, modules: mods }));
+    }, [course.modules]);
+
+    // Collapsed sections state
+    const [collapsedSections, setCollapsedSections] = useState({});
+
+    const toggleSection = (name) => {
+        setCollapsedSections(prev => ({ ...prev, [name]: !prev[name] }));
+    };
+
+    // Auto-expand section containing active module
+    useEffect(() => {
+        if (activeModule) {
+            const sectionName = activeModule.section || "Introduction & Fundamentals";
+            if (collapsedSections[sectionName]) {
+                setCollapsedSections(prev => ({ ...prev, [sectionName]: false }));
+            }
+        }
+    }, [activeModule]);
+
+    // Locking logic: Module is unlocked if it's first OR if previous is completed
+    const isModuleUnlocked = (index) => {
+        if (index === 0) return true;
+        const prevModule = course.modules[index - 1];
+        return completedModules.includes(prevModule.title);
+    };
+
+    const isLastModule = activeModule && course.modules?.[course.modules.length - 1]?.title === activeModule.title;
 
     // Helper to render content with markdown
     const RenderContent = ({ content }) => (
@@ -305,54 +649,150 @@ const StandardLessonView = ({ course, onExit }) => {
     );
 
     return (
-        <div className="fade-in">
-            <button onClick={onExit} style={{ marginBottom: '20px', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 'bold' }}>
-                <span className="material-icons">arrow_back</span> Back to Courses
-            </button>
-
-            <div className="dash-card" style={{ border: '4px solid black', boxShadow: '8px 8px 0 black', padding: '0', overflow: 'hidden', height: 'calc(100vh - 150px)', display: 'grid', gridTemplateColumns: '300px 1fr' }}>
-                {/* Sidebar */}
-                <div style={{ background: '#f8f9fa', borderRight: '2px solid black', overflowY: 'auto' }}>
-                    <div style={{ padding: '20px', background: 'black', color: 'white' }}>
-                        <h2 style={{ fontSize: '1.2rem', margin: 0 }}>{course.title}</h2>
-                    </div>
-                    {course.modules?.map((mod, idx) => (
-                        <div
-                            key={idx}
-                            onClick={() => { setActiveModule(mod); setActiveTab('lecture'); }}
+        <div className="fade-in" style={{ height: 'calc(100vh - 80px)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            {/* Header Strip */}
+            <div className="admin-header-strip" style={{ padding: '15px 40px', background: 'var(--primary)', color: 'black', marginBottom: 0, borderBottom: '3px solid black' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                        <button
+                            onClick={onExit}
                             style={{
-                                padding: '15px 20px',
-                                borderBottom: '1px solid #ddd',
+                                background: 'white',
+                                border: '2px solid black',
+                                padding: '8px 12px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '5px',
                                 cursor: 'pointer',
-                                background: activeModule === mod ? 'var(--primary)' : 'transparent',
-                                fontWeight: activeModule === mod ? 'bold' : 'normal',
-                                display: 'flex', alignItems: 'center', gap: '10px'
+                                fontWeight: 'bold',
+                                boxShadow: '2px 2px 0 black'
                             }}
                         >
-                            <div style={{ width: '25px', height: '25px', background: activeModule === mod ? 'black' : '#ddd', color: activeModule === mod ? 'white' : '#666', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 'bold' }}>
-                                {idx + 1}
-                            </div>
-                            <div>
-                                <div style={{ fontSize: '0.9rem' }}>{mod.title}</div>
-                                <div style={{ fontSize: '0.7rem', color: '#666', textTransform: 'uppercase' }}>{mod.level || 'General'}</div>
-                            </div>
+                            <span className="material-icons">arrow_back</span>
+                            BACK
+                        </button>
+                        <div>
+                            <div style={{ fontSize: '0.7rem', fontWeight: 'bold', textTransform: 'uppercase', opacity: 0.7 }}>Personalized Training</div>
+                            <h1 style={{ fontSize: '1.3rem', margin: 0 }}>{course.title}</h1>
                         </div>
-                    ))}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                        <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontSize: '0.7rem', fontWeight: 'bold', color: 'rgba(0,0,0,0.5)' }}>PROGRESS</div>
+                            <div style={{ fontWeight: '900', fontSize: '1.1rem' }}>{completedModules.length}/{course.modules?.length || 0}</div>
+                        </div>
+                        <div style={{ width: '100px', height: '12px', background: 'white', border: '2px solid black' }}>
+                            <div style={{
+                                width: `${(completedModules.length / (course.modules?.length || 1)) * 100}%`,
+                                height: '100%',
+                                background: 'var(--secondary)',
+                                transition: 'width 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
+                            }}></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="course-main-layout" style={{ flex: 1, display: 'flex', overflow: 'hidden', padding: '20px', gap: '20px' }}>
+                {/* Module Sidebar */}
+                <div style={{ width: '320px', background: '#f8f9fa', border: '3px solid black', boxShadow: '5px 5px 0 black', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                    <div style={{ padding: '20px', background: 'black', color: 'white', fontWeight: 'bold' }}>CURRICULUM</div>
+                    <div style={{ flex: 1, overflowY: 'auto' }}>
+                        {sections.map((section, sIdx) => {
+                            const isCollapsed = collapsedSections[section.name];
+                            const completedInSection = section.modules.filter(m => completedModules.includes(m.title)).length;
+                            const totalInSection = section.modules.length;
+
+                            return (
+                                <div key={sIdx} style={{ borderBottom: '1px solid black' }}>
+                                    <div
+                                        onClick={() => toggleSection(section.name)}
+                                        style={{
+                                            padding: '12px 20px',
+                                            background: '#333',
+                                            color: 'white',
+                                            fontSize: '0.8rem',
+                                            fontWeight: 'bold',
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        <span>{section.name.toUpperCase()}</span>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                            <span style={{ fontSize: '0.7rem', opacity: 0.8 }}>{completedInSection}/{totalInSection}</span>
+                                            <span className="material-icons" style={{ fontSize: '1rem' }}>
+                                                {isCollapsed ? 'expand_more' : 'expand_less'}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {!isCollapsed && (
+                                        <div className="animate-slide-down">
+                                            {section.modules.map((m) => {
+                                                const isSelected = activeModule?.title === m.title;
+                                                const isCompleted = completedModules.includes(m.title);
+                                                const unlocked = isModuleUnlocked(m.index);
+
+                                                return (
+                                                    <div
+                                                        key={m.title}
+                                                        onClick={() => unlocked && setActiveModule(m)}
+                                                        style={{
+                                                            padding: '15px 20px',
+                                                            cursor: unlocked ? 'pointer' : 'not-allowed',
+                                                            borderBottom: '1px solid #ddd',
+                                                            background: isSelected ? 'var(--primary)' : isCompleted ? '#e8f5e9' : 'transparent',
+                                                            color: unlocked ? 'inherit' : '#999',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: '10px',
+                                                            transition: 'all 0.2s'
+                                                        }}
+                                                    >
+                                                        <span className="material-icons" style={{
+                                                            fontSize: '1.2rem',
+                                                            color: isCompleted ? 'green' : (isSelected ? 'black' : '#ccc')
+                                                        }}>
+                                                            {isCompleted ? 'check_circle' : (unlocked ? 'play_circle_outline' : 'lock')}
+                                                        </span>
+                                                        <span style={{ fontSize: '0.9rem', fontWeight: isSelected ? 'bold' : 'normal' }}>
+                                                            {m.title}
+                                                        </span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
 
                 {/* Main Content Area */}
-                <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'white', border: '3px solid black', boxShadow: '5px 5px 0 black', overflow: 'hidden' }}>
                     {activeModule ? (
                         <>
-                            {/* Content Header / Tabs */}
+                            {/* Tabs Area */}
                             <div style={{ padding: '20px 40px', background: 'white', borderBottom: '2px solid black' }}>
-                                <h2 style={{ fontSize: '1.8rem', marginBottom: '15px' }}>{activeModule.title}</h2>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                    <h2 style={{ fontSize: '1.8rem', marginBottom: '15px' }}>{activeModule.title}</h2>
+                                    <button
+                                        onClick={() => setShowHelp(true)}
+                                        style={{ padding: '8px 16px', background: '#ffebee', color: '#c62828', border: '2px solid #c62828', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                    >
+                                        <span className="material-icons">help_outline</span>
+                                        Ask AI Tutor
+                                    </button>
+                                </div>
                                 <div style={{ display: 'flex', gap: '10px' }}>
                                     {[
                                         { id: 'lecture', icon: 'description', label: 'Lecture' },
                                         { id: 'video', icon: 'play_circle', label: 'Video' },
                                         { id: 'notes', icon: 'edit_note', label: 'Notes' },
-                                        { id: 'tips', icon: 'lightbulb', label: 'Tips' }
+                                        { id: 'tips', icon: 'lightbulb', label: 'Tips' },
                                     ].map(tab => (
                                         <button
                                             key={tab.id}
@@ -365,7 +805,7 @@ const StandardLessonView = ({ course, onExit }) => {
                                                 fontWeight: 'bold',
                                                 cursor: 'pointer',
                                                 display: 'flex', alignItems: 'center', gap: '6px',
-                                                boxShadow: activeTab === tab.id ? '2px 2px 0 var(--accent)' : '2px 2px 0 #999'
+                                                boxShadow: activeTab === tab.id ? '3px 3px 0 var(--accent)' : '2px 2px 0 #999'
                                             }}
                                         >
                                             <span className="material-icons" style={{ fontSize: '1.1rem' }}>{tab.icon}</span>
@@ -375,49 +815,127 @@ const StandardLessonView = ({ course, onExit }) => {
                                 </div>
                             </div>
 
-                            {/* Scrollable Content */}
-                            <div style={{ flex: 1, overflowY: 'auto', padding: '40px' }}>
+                            {/* Scrollable Area */}
+                            <div id="module-content-scroll" style={{ flex: 1, overflowY: 'auto', padding: '40px' }}>
                                 <div className="fade-in">
-
-
                                     {activeTab === 'lecture' && <RenderContent content={activeModule.content} />}
-
                                     {activeTab === 'notes' && <RenderContent content={activeModule.notes} />}
-
                                     {activeTab === 'tips' && <RenderContent content={activeModule.tips} />}
-
                                     {activeTab === 'video' && (
                                         <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-                                            {videoId ? (
-                                                <div style={{ marginBottom: '30px', border: '2px solid black', boxShadow: '8px 8px 0 black' }}>
-                                                    <iframe
-                                                        width="100%"
-                                                        height="450"
-                                                        src={`https://www.youtube.com/embed/${videoId}`}
-                                                        title={activeModule.title}
-                                                        frameBorder="0"
-                                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                                        allowFullScreen
-                                                    ></iframe>
-                                                </div>
-                                            ) : (
-                                                <div style={{ padding: '40px', border: '2px solid black', background: '#f9f9f9', textAlign: 'center' }}>
-                                                    <span className="material-icons" style={{ fontSize: '4rem', color: 'red' }}>play_circle_filled</span>
-                                                    <h3>Video Recommendation</h3>
-                                                    <p style={{ marginBottom: '20px' }}>We recommend searching for this topic to find the best current tutorials.</p>
-                                                    <a
-                                                        href={`https://www.youtube.com/results?search_query=${encodeURIComponent(activeModule.youtubeQuery || activeModule.title + " tutorial")}`}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        style={{ display: 'inline-block', padding: '12px 24px', background: 'red', color: 'white', textDecoration: 'none', fontWeight: 'bold', borderRadius: '4px', border: '2px solid black' }}
-                                                    >
-                                                        SEARCH YOUTUBE
-                                                    </a>
-                                                </div>
-                                            )}
+                                            <SmartVideoPlayer
+                                                videoId={activeModule.videoId}
+                                                title={activeModule.title}
+                                                query={activeModule.youtubeQuery || activeModule.title + " tutorial"}
+                                            />
                                         </div>
                                     )}
                                 </div>
+                            </div>
+
+                            {/* Footer Completion Bar */}
+                            <div style={{ padding: '20px 40px', background: '#f8f9fa', borderTop: '2px solid black', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '20px' }}>
+                                <div style={{ fontSize: '0.9rem', color: '#666', fontWeight: 'bold' }}>
+                                    {isLastModule ? "READY TO GRADUATE?" : "READY FOR THE NEXT STEP?"}
+                                </div>
+                                {!completedModules.includes(activeModule.title) ? (
+                                    <button
+                                        id="mark-finished-btn"
+                                        disabled={isMarking}
+                                        onClick={async () => {
+                                            console.log("[UI] Mark finished clicked for:", activeModule.title);
+                                            setIsMarking(true);
+                                            try {
+                                                // 1. Mark as complete
+                                                const res = await markModuleComplete(user.id, course.id, activeModule.title);
+                                                console.log("[UI] markModuleComplete result:", res);
+
+                                                // 2. Immediate feedback modal
+                                                const currentIndex = course.modules.findIndex(m => m.title === activeModule.title);
+                                                if (currentIndex < course.modules.length - 1) {
+                                                    const next = course.modules[currentIndex + 1];
+
+                                                    openModal({
+                                                        title: "Great Job!",
+                                                        message: `"${activeModule.title}" is complete. Ready to continue to "${next.title}"?`,
+                                                        type: 'info',
+                                                        confirmText: "Yes, Next Lesson",
+                                                        onConfirm: () => {
+                                                            setActiveModule(next);
+                                                            const scrollContainer = document.getElementById('module-content-scroll');
+                                                            if (scrollContainer) scrollContainer.scrollTop = 0;
+                                                        }
+                                                    });
+                                                } else {
+                                                    openModal({
+                                                        title: "Course Completed!",
+                                                        message: "You've finished all modules in this course. You can now claim your certificate.",
+                                                        type: 'info',
+                                                        confirmText: "Awesome"
+                                                    });
+                                                }
+                                            } catch (err) {
+                                                console.error("[UI] Error marking module complete:", err);
+                                                openModal({
+                                                    title: "Saving Failed",
+                                                    message: "Failed to save progress. Please try again.",
+                                                    type: 'error'
+                                                });
+                                            } finally {
+                                                setIsMarking(false);
+                                            }
+                                        }}
+                                        style={{
+                                            padding: '12px 30px',
+                                            background: isMarking ? '#666' : '#0047AB',
+                                            color: 'white',
+                                            border: '3px solid black',
+                                            fontWeight: 'bold',
+                                            cursor: isMarking ? 'not-allowed' : 'pointer',
+                                            boxShadow: isMarking ? 'none' : '4px 4px 0 black',
+                                            textTransform: 'uppercase',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '10px'
+                                        }}
+                                    >
+                                        {isMarking && <span className="material-icons animate-spin">sync</span>}
+                                        {isMarking ? "SAVING..." : "Mark as Finished & Next"}
+                                    </button>
+                                ) : (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'green', fontWeight: 'bold', background: '#e8f5e9', padding: '10px 20px', border: '2px solid green' }}>
+                                        <span className="material-icons">check_circle</span>
+                                        LESSON COMPLETED
+                                    </div>
+                                )}
+
+                                {isLastModule && (
+                                    <button
+                                        onClick={() => {
+                                            openModal({
+                                                title: "Finish Course",
+                                                message: `Congratulations! You have finished all ${course.modules.length} modules. Want to claim your diploma?`,
+                                                type: 'confirm',
+                                                confirmText: "Yes, Finish Course",
+                                                onConfirm: () => {
+                                                    markCourseComplete(user.id, course.id);
+                                                    onExit();
+                                                }
+                                            });
+                                        }}
+                                        style={{
+                                            padding: '12px 30px',
+                                            background: 'var(--accent)',
+                                            color: 'white',
+                                            border: '3px solid black',
+                                            fontWeight: 'bold',
+                                            cursor: 'pointer',
+                                            boxShadow: '4px 4px 0 black'
+                                        }}
+                                    >
+                                        FINISH ENTIRE COURSE
+                                    </button>
+                                )}
                             </div>
                         </>
                     ) : (
@@ -427,80 +945,21 @@ const StandardLessonView = ({ course, onExit }) => {
                     )}
                 </div>
             </div>
+
+            {activeModule && (
+                <HelpChatModal
+                    isOpen={showHelp}
+                    onClose={() => setShowHelp(false)}
+                    courseTitle={course.title}
+                    moduleTitle={activeModule.title}
+                    moduleContent={activeModule.content}
+                />
+            )}
         </div>
     );
 };
 
-const BauhausModal = ({ isOpen, title, message, onConfirm, onCancel, type = 'info', confirmText = 'OK', cancelText = 'Cancel' }) => {
-    if (!isOpen) return null;
-
-    return (
-        <div style={{
-            position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
-            background: 'rgba(0,0,0,0.5)', zIndex: 1000,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            backdropFilter: 'blur(3px)'
-        }}>
-            <div className="fade-in" style={{
-                background: 'white',
-                border: '4px solid black',
-                boxShadow: '10px 10px 0 black',
-                width: '90%',
-                maxWidth: '500px',
-                padding: '0'
-            }}>
-                <div style={{
-                    padding: '15px 20px',
-                    background: type === 'confirm' ? 'var(--accent)' : 'black',
-                    color: 'white',
-                    fontWeight: 'bold',
-                    fontSize: '1.2rem',
-                    borderBottom: '4px solid black',
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-                }}>
-                    <span>{title}</span>
-                    <button onClick={onCancel} style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
-                </div>
-
-                <div style={{ padding: '30px', fontSize: '1.1rem', lineHeight: '1.5' }}>
-                    {message}
-                </div>
-
-                <div style={{ padding: '20px', borderTop: '2px solid black', background: '#f8f9fa', display: 'flex', justifyContent: 'flex-end', gap: '15px' }}>
-                    {onCancel && (
-                        <button
-                            onClick={onCancel}
-                            style={{
-                                padding: '10px 25px',
-                                background: 'white',
-                                border: '2px solid black',
-                                fontWeight: 'bold',
-                                cursor: 'pointer',
-                                boxShadow: '3px 3px 0 #999'
-                            }}
-                        >
-                            {cancelText}
-                        </button>
-                    )}
-                    <button
-                        onClick={onConfirm}
-                        style={{
-                            padding: '10px 25px',
-                            background: 'var(--secondary)',
-                            color: 'white',
-                            border: '2px solid black',
-                            fontWeight: 'bold',
-                            cursor: 'pointer',
-                            boxShadow: '3px 3px 0 black'
-                        }}
-                    >
-                        {confirmText}
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-};
+// BauhausModal is now a shared component
 
 const CourseView = ({ initialSubTab = 'my_courses', autoLaunchTopic = null, openModal }) => {
     const { user } = useAuth();
@@ -532,7 +991,7 @@ const CourseView = ({ initialSubTab = 'my_courses', autoLaunchTopic = null, open
         if (viewingCourse.isAI) {
             return <GamifiedLearningView course={viewingCourse} onExit={() => setViewingCourseId(null)} openModal={openModal} />;
         } else {
-            return <StandardLessonView course={viewingCourse} onExit={() => setViewingCourseId(null)} />;
+            return <StandardLessonView course={viewingCourse} onExit={() => setViewingCourseId(null)} openModal={openModal} />;
         }
     }
 
@@ -842,7 +1301,10 @@ const TeacherChatView = () => {
         }
     }, [teachers, selectedTeacherId]);
 
-    const activeChatData = selectedTeacherId ? getChats(user.id, selectedTeacherId) : [];
+    const activeChatData = useMemo(() => {
+        if (!selectedTeacherId) return [];
+        return getChats(user.id, selectedTeacherId);
+    }, [selectedTeacherId, user.id, getChats]);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -850,7 +1312,7 @@ const TeacherChatView = () => {
 
     useEffect(() => {
         scrollToBottom();
-    }, [activeChatData, selectedTeacherId]);
+    }, [activeChatData]);
 
     const handleSend = (text, attachment) => {
         if (!selectedTeacherId) return;
@@ -2105,7 +2567,7 @@ const LiveClassView = () => {
 
 export default function StudentDashboard() {
     const { user, logout } = useAuth();
-    const { darkMode, toggleTheme, getCoursesForStudent, checkStreaks } = useData();
+    const { darkMode, toggleTheme, getCoursesForStudent, checkStreaks, openModal, closeModal, modalConfig } = useData();
     const [activeTab, setActiveTab] = useState('home');
     const [viewProps, setViewProps] = useState({}); // To pass navigating params like {initialSubTab, autoLaunchTopic}
 
@@ -2116,21 +2578,7 @@ export default function StudentDashboard() {
         }
     }, [user, checkStreaks]);
 
-    // Modal State
-    const [modalConfig, setModalConfig] = useState({ isOpen: false });
-
-    const openModal = (config) => {
-        setModalConfig({ ...config, isOpen: true });
-    };
-
-    const closeModal = () => {
-        setModalConfig(prev => ({ ...prev, isOpen: false }));
-    };
-
-    const handleConfirmModal = () => {
-        if (modalConfig.onConfirm) modalConfig.onConfirm();
-        closeModal();
-    };
+    // Modal State is now managed globally in DataContext
 
     const handleNavigateToCourse = (topic) => {
         setViewProps({ initialSubTab: 'suggested', autoLaunchTopic: topic });
@@ -2191,6 +2639,7 @@ export default function StudentDashboard() {
                     <Menu id="assessments" label="Assessments" icon="assignment" />
                     <Menu id="achievements" label="Achievements" icon="emoji_events" />
                     <Menu id="profile" label="Profile" icon="person" />
+                    <Menu id="help" label="Help & Support" icon="help" />
                 </div>
 
                 <div style={{ marginTop: 'auto', padding: '20px' }}>
@@ -2202,7 +2651,7 @@ export default function StudentDashboard() {
             </nav>
 
             <main className="admin-main">
-                {activeTab === 'home' && <OverviewPanel user={user} myCourses={myCourses} />}
+                {activeTab === 'home' && <OverviewPanel user={user} myCourses={myCourses} onNavigate={(tab, props) => { setActiveTab(tab); setViewProps(props); }} />}
                 {activeTab === 'courses' && <CourseView {...viewProps} openModal={openModal} />}
                 {activeTab === 'live' && <LiveClassView />}
                 {activeTab === 'chat' && <TeacherChatView />}
@@ -2211,19 +2660,8 @@ export default function StudentDashboard() {
                 {activeTab === 'meetings' && <SectionPlaceholder title="Live Classes" />}
                 {activeTab === 'achievements' && <AchievementsView />}
                 {activeTab === 'profile' && <SectionPlaceholder title="Profile & Settings" />}
+                {activeTab === 'help' && <HelpView />}
             </main>
-
-            {/* Global Modal */}
-            <BauhausModal
-                isOpen={modalConfig.isOpen}
-                title={modalConfig.title}
-                message={modalConfig.message}
-                type={modalConfig.type}
-                confirmText={modalConfig.confirmText}
-                cancelText={modalConfig.cancelText}
-                onConfirm={handleConfirmModal}
-                onCancel={closeModal}
-            />
         </div>
     );
 }

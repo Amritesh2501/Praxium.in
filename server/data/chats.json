@@ -1,0 +1,71 @@
+[
+  {
+    "senderId": "teacher1",
+    "receiverId": "STD-2026-002",
+    "text": "hello",
+    "read": false,
+    "id": "1767797977527",
+    "timestamp": "2026-01-07T14:59:37.527Z"
+  },
+  {
+    "senderId": "STD-2026-002",
+    "receiverId": "teacher1",
+    "text": "hello",
+    "id": "1767809049730",
+    "timestamp": "2026-01-07T18:04:09.730Z"
+  },
+  {
+    "senderId": "STD-2026-002",
+    "receiverId": "teacher1",
+    "text": "😀",
+    "id": "1767809408260",
+    "timestamp": "2026-01-07T18:10:08.260Z"
+  },
+  {
+    "senderId": "STD-2026-002",
+    "receiverId": "teacher1",
+    "text": "",
+    "attachment": {
+      "type": "image",
+      "url": "blob:http://localhost:5173/37d909d1-275b-4315-a52d-557a0c4f278c",
+      "file": {}
+    },
+    "id": "1767810243554",
+    "timestamp": "2026-01-07T18:24:03.554Z"
+  },
+  {
+    "senderId": "STD-2026-002",
+    "receiverId": "teacher1",
+    "text": "",
+    "attachment": {
+      "type": "audio",
+      "url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
+    },
+    "id": "1767810252591",
+    "timestamp": "2026-01-07T18:24:12.591Z"
+  },
+  {
+    "senderId": "STD-2026-002",
+    "receiverId": "TCH-2026-002",
+    "text": "hello",
+    "attachment": null,
+    "id": "1767826125023",
+    "timestamp": "2026-01-07T22:48:45.023Z"
+  },
+  {
+    "senderId": "STD-2026-004",
+    "receiverId": "FAC-001",
+    "text": "hi",
+    "attachment": null,
+    "id": "1769692890056",
+    "timestamp": "2026-01-29T13:21:30.056Z"
+  },
+  {
+    "senderId": "FAC-001",
+    "receiverId": "STD-2026-004",
+    "text": "hi",
+    "read": false,
+    "id": "1769692921275",
+    "timestamp": "2026-01-29T13:22:01.275Z"
+  }
+]

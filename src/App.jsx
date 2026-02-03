@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
 // IMPORT TEST: Checking if this file causes a crash just by being imported
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { DataProvider } from './context/DataContext';
+import { DataProvider, useData } from './context/DataContext';
 import AuthPage from './components/AuthPage';
 import AdminDashboard from './components/dashboards/AdminDashboard';
 import TeacherDashboard from './components/dashboards/TeacherDashboard';
 import StudentDashboard from './components/dashboards/StudentDashboard';
 import LoadingScreen from './components/LoadingScreen';
+import BauhausModal from './components/common/BauhausModal';
 
 function AppContent() {
   const { user } = useAuth();
+  const { modalConfig, closeModal } = useData();
   const [debugReset, setDebugReset] = useState(false);
 
   if (!user) return <AuthPage />;
@@ -20,6 +22,23 @@ function AppContent() {
       {user.role === 'teacher' && <TeacherDashboard />}
       {user.role === 'student' && <StudentDashboard />}
       {!user.role && <StudentDashboard />} {/* Fallback */}
+
+      <BauhausModal
+        isOpen={modalConfig.isOpen}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        onConfirm={() => {
+          if (modalConfig.onConfirm) modalConfig.onConfirm();
+          closeModal();
+        }}
+        onCancel={() => {
+          if (modalConfig.onCancel) modalConfig.onCancel();
+          closeModal();
+        }}
+        type={modalConfig.type}
+        confirmText={modalConfig.confirmText}
+        cancelText={modalConfig.cancelText}
+      />
     </>
   );
 }

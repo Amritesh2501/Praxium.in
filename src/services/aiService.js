@@ -1,6 +1,6 @@
 // API_KEY is no longer needed on the client side!
 // The backend proxy handles it securely.
-const API_URL = "http://localhost:3000/api/generate";
+const API_URL = "/api/generate";
 
 export const generateAIResponse = async (userMessage, imageFile = null) => {
     try {
@@ -55,16 +55,31 @@ const cleanJSON = (text) => {
 
 export const generateCourseSyllabus = async (courseTitle) => {
     const prompt = `
-        Create a detailed 5-module syllabus for a course titled "${courseTitle}".
+        Create an UNBELIEVABLY COMPREHENSIVE 30-module syllabus for a course titled "${courseTitle}".
+        The course MUST have EXACTLY 30 modules, divided into 3 distinct parts (Sections):
+        - Section 1: Fundamentals (Modules 1-10)
+        - Section 2: Intermediate (Modules 11-20)
+        - Section 3: Advanced & Mastery (Modules 21-30)
+        
+        It is CRITICAL that you provide EXACTLY 10 modules for each section.
+        
         For each module, provide:
-        1. "title": The module title.
-        2. "content": Detailed educational content in Markdown format. clearly explaining concepts with headings, bullet points, and code snippets if applicable.
-        3. "videoId": A specific, relevant YouTube Video ID (the 11-character string, e.g., 'dQw4w9WgXcQ') that covers this topic. If you don't know a specific one, search your knowledge base for a very popular tutorial on this specific topic and provide its ID. Do not make up invalid IDs if possible, or provide a generic valid one for the topic.
+        1. "title": The module title (e.g., "Module 1: Foundations of...").
+        2. "section": The section title (MUST be exactly "Section 1: Fundamentals", "Section 2: Intermediate", or "Section 3: Advanced & Mastery").
+        3. "content": EXTREMELY DETAILED educational content in Markdown format. 
+           - It MUST explain every concept clearly across multiple long paragraphs.
+           - Include "Key Concepts", "Detailed Explanations", "Real-world Examples", and "Code Snippets" (if technical).
+           - The content should be substantial (at least 300 words per module).
+           - Do not just summarize; TEACH the topic.
+        4. "videoId": A specific, relevant YouTube Video ID (11 chars). If unknown, leave empty.
+        5. "youtubeQuery": A short, specific search query to find a video tutorial for this module (e.g., "React Hooks tutorial").
+        6. "notes": A short list of bullet points (2-3) summarizing key takeaways or interesting facts.
+        7. "tips": A short blockquote (> Tip) style advice or insight for the student.
         
         Return the response as a JSON object with this structure:
         {
             "modules": [
-                { "title": "...", "content": "...", "videoId": "..." }
+                { "title": "...", "section": "...", "content": "...", "videoId": "...", "youtubeQuery": "...", "notes": "...", "tips": "..." }
             ]
         }
     `;
@@ -74,8 +89,27 @@ export const generateCourseSyllabus = async (courseTitle) => {
         return JSON.parse(cleanJSON(response));
     } catch (error) {
         console.error("AI Syllabus Generation Error:", error);
-        return null;
+        return { modules: [] }; // Fallback
     }
+};
+
+export const askTutor = async (courseTitle, moduleTitle, moduleContent, userQuestion) => {
+    const prompt = `
+        You are an expert tutor for the course "${courseTitle}".
+        The student is currently studying "${moduleTitle}".
+        
+        Here is the content they are reading:
+        """
+        ${moduleContent.substring(0, 1500)}... (truncated)
+        """
+        
+        The student has asked: "${userQuestion}"
+        
+        Provide a clear, helpful, and concise explanation to answer their question. 
+        Use the context provided but feel free to expand if necessary to be helpful. 
+        Keep the tone encouraging and professional.
+    `;
+    return await generateAIResponse(prompt);
 };
 
 export const generateQuiz = async (courseTitle) => {
@@ -198,6 +232,17 @@ export const generateLevelContent = async (topic, level) => {
         return JSON.parse(cleanJSON(text));
     } catch (e) {
         console.error("Level Gen Error", e);
-        throw e;
+        // Fallback Content so the UI doesn't break
+        return {
+            lessonTitle: `${topic} - Level ${level}`,
+            lessonContent: `### Content Temporarily Unavailable\n\nWe couldn't generate the specific lesson content right now. \n\n**Self-Study Task:**\n1. Search for **"${topic}"** on Google or YouTube.\n2. Focus on intermediate concepts.\n3. Come back to take the quiz!`,
+            videoId: "",
+            youtubeQuery: `${topic} level ${level} tutorial`,
+            quiz: {
+                question: "What is the primary focus of this topic?",
+                options: ["Understanding core concepts", "Memorizing dates", "Ignoring details", "Wild guessing"],
+                correctAnswer: "Understanding core concepts"
+            }
+        };
     }
 };

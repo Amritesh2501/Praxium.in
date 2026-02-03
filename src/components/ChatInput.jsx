@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useData } from '../context/DataContext';
 
 const ChatInput = ({ onSend, placeholder = "Type a message..." }) => {
     const [text, setText] = useState('');
@@ -22,11 +23,17 @@ const ChatInput = ({ onSend, placeholder = "Type a message..." }) => {
         }
     };
 
+    const { openModal } = useData();
+
     const handleAudioClick = () => {
         // Mock audio recording
         const mockAudioUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"; // Placeholder
         setAttachment({ type: 'audio', url: mockAudioUrl });
-        alert("Audio recorded! (Mock)");
+        openModal({
+            title: "Audio Recorded",
+            message: "Mock audio has been recorded and attached.",
+            type: 'info'
+        });
     };
 
     const addEmoji = (emoji) => {

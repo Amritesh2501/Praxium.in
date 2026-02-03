@@ -1,45 +1,37 @@
 [
   {
-    "id": "ai-1767953184487",
-    "title": "Ethical Considerations and Societal Impact of AI",
+    "id": "ai-1767814216824",
+    "title": "Regression Algorithms",
     "description": "AI Generated Adaptive Course",
     "isAI": true,
     "currentLevel": 1
   },
   {
-    "id": "ai-1767954871458",
-    "title": "Supervised, Unsupervised, and Reinforcement Learning",
+    "id": "ai-1767814656844",
+    "title": "Unsupervised Learning",
     "description": "AI Generated Adaptive Course",
     "isAI": true,
     "currentLevel": 1
   },
   {
-    "id": "ai-1767954903207",
-    "title": "Fundamental AI Concepts (Strong vs. Weak AI, AI Effect)",
+    "id": "ai-1767825807203",
+    "title": "Feature Engineering",
     "description": "AI Generated Adaptive Course",
     "isAI": true,
     "currentLevel": 1
   },
   {
-    "id": "ai-1767955339457",
-    "title": "What is AI?",
+    "id": "ai-1769696229107",
+    "title": "Introduction to Artificial Intelligence Fundamentals",
     "description": "AI Generated Adaptive Course",
     "isAI": true,
     "currentLevel": 1
   },
   {
-    "id": "ai-1767961272854",
-    "title": "The Societal Impact of AI (automation, job displacement, and the benefits of AI in healthcare)",
-    "description": "AI Generated Adaptive Course",
-    "isAI": true,
-    "currentLevel": 1
-  },
-  {
-    "id": "ai-1767961641648",
-    "title": "AI and income inequality",
+    "id": "ai-1770108530392",
+    "title": "Advanced React Patterns Fundamentals",
     "description": "AI Generated Adaptive Course",
     "isAI": true,
     "currentLevel": 1
   }
-]
 ]

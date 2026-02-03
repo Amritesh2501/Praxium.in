@@ -1,0 +1,32 @@
+[
+  {
+    "id": "1767826198183",
+    "courseId": "ml-101",
+    "teacherId": "TCH-2026-002"
+  },
+  {
+    "id": "1769692746729",
+    "courseId": "c1",
+    "teacherId": "FAC-001"
+  },
+  {
+    "id": "1769693495715",
+    "courseId": "1769693493320",
+    "teacherId": "FAC-001"
+  },
+  {
+    "id": "1769709900001",
+    "courseId": "c3",
+    "teacherId": "FAC-2026-003"
+  },
+  {
+    "id": "1769709900002",
+    "courseId": "c4",
+    "teacherId": "FAC-2026-003"
+  },
+  {
+    "id": "1769709900003",
+    "courseId": "c5",
+    "teacherId": "FAC-001"
+  }
+]

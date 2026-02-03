@@ -1,0 +1,52 @@
+[
+    {
+        "id": "STD-2026-001",
+        "name": "Alex Student",
+        "email": "alex@praxium.ai",
+        "role": "student",
+        "password": "password123",
+        "streak": 5,
+        "permissions": "standard",
+        "completedCourses": []
+    },
+    {
+        "id": "student1",
+        "name": "Student John",
+        "email": "student@praxium.ai",
+        "role": "student",
+        "password": "password",
+        "permissions": "standard",
+        "completedCourses": [],
+        "achievements": []
+    },
+    {
+        "id": "henry_student",
+        "name": "Henry",
+        "email": "henry.student@praxium.ai",
+        "role": "student",
+        "password": "12345678",
+        "permissions": "standard",
+        "completedCourses": [],
+        "achievements": []
+    },
+    {
+        "id": "ADM-2026-001",
+        "name": "Admin User",
+        "email": "admin@praxium.ai",
+        "role": "admin",
+        "password": "adminpassword",
+        "permissions": "admin",
+        "completedCourses": [],
+        "achievements": []
+    },
+    {
+        "id": "TCH-2026-001",
+        "name": "Teacher User",
+        "email": "teacher@praxium.ai",
+        "role": "teacher",
+        "password": "teacherpassword",
+        "permissions": "editor",
+        "completedCourses": [],
+        "achievements": []
+    }
+]

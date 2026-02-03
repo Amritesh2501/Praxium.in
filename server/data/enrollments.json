@@ -1,22 +1,22 @@
 [
   {
-    "id": "e1",
-    "studentId": "STD-2026-001",
-    "courseId": "c1"
+    "id": "1767872725286",
+    "courseId": "ml-101",
+    "studentId": "STD-2026-002"
   },
   {
-    "id": "e2",
-    "studentId": "STD-2026-001",
-    "courseId": "c2"
+    "id": "1769711053537",
+    "courseId": "1769711045248",
+    "studentId": "STD-2026-003"
   },
   {
-    "id": "1767903454019",
+    "id": "1769713739352",
+    "courseId": "ml-101",
+    "studentId": "STD-2026-003"
+  },
+  {
+    "id": "1770108419382",
     "courseId": "c2",
-    "studentId": "STD-2026-002"
-  },
-  {
-    "id": "1767903456049",
-    "courseId": "c1",
-    "studentId": "STD-2026-002"
+    "studentId": "STD-2026-004"
   }
 ]

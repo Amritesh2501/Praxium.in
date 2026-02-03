@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import { generateCourseSyllabus } from '../../services/aiService';
+import AILoadingScreen from '../common/AILoadingScreen';
 
 // --- Helper Components ---
 
@@ -223,9 +224,12 @@ const UserListView = () => {
 
     const handleDelete = (id, e) => {
         e.stopPropagation();
-        if (window.confirm('Are you sure you want to delete this user?')) {
-            deleteUser(id);
-        }
+        openModal({
+            title: "Confirm Deletion",
+            message: "Are you sure you want to delete this user? This action cannot be undone.",
+            type: 'confirm',
+            onConfirm: () => deleteUser(id)
+        });
     };
 
     return (
@@ -395,7 +399,7 @@ const AddUserView = ({ onComplete }) => {
 };
 
 const AddBookView = () => {
-    const { addBook, courses, books, courseBooks, enrollments, users } = useData();
+    const { addBook, courses, books, courseBooks, enrollments, users, openModal } = useData();
     const [viewMode, setViewMode] = useState('add');
     const [book, setBook] = useState({ title: '', author: '', category: 'Computer Science', file: null });
     const [selectedCourse, setSelectedCourse] = useState('');
@@ -412,7 +416,11 @@ const AddBookView = () => {
         addBook(bookData, selectedCourse);
         setBook({ title: '', author: '', category: 'Computer Science', file: null });
         setSelectedCourse('');
-        alert("Book uploaded and linked successfully");
+        openModal({
+            title: "Book Added",
+            message: "Book uploaded and linked successfully",
+            type: 'info'
+        });
     };
 
     const getBookDetails = (book) => {
@@ -548,27 +556,10 @@ const AdminChatView = () => {
     const [activeTab, setActiveTab] = useState('student'); // 'student' | 'teacher'
     const [selectedUserId, setSelectedUserId] = useState(null);
     const [newMessage, setNewMessage] = useState('');
-    const [chatHistory, setChatHistory] = useState([]);
-    const messagesEndRef = React.useRef(null);
-
-    const filteredUsers = users.filter(u => u.role === activeTab);
-
-    // Auto-select first user if available
-    useEffect(() => {
-        if (!selectedUserId && filteredUsers.length > 0) {
-            // setSelectedUserId(filteredUsers[0].id); // Optional: Auto-select
-        }
-    }, [activeTab]);
-
-    // Load Chat History
-    useEffect(() => {
-        if (selectedUserId) {
-            const history = getChats(user.id, selectedUserId);
-            setChatHistory(history);
-        } else {
-            setChatHistory([]);
-        }
-    }, [selectedUserId, user.id, getChats, users]); // Depend on users to re-render if new msg comes in via polling (conceptually) or state update
+    const chatHistory = useMemo(() => {
+        if (!selectedUserId) return [];
+        return getChats(user.id, selectedUserId);
+    }, [selectedUserId, user.id, getChats]);
 
     // Scroll to bottom
     const scrollToBottom = () => {
@@ -577,7 +568,7 @@ const AdminChatView = () => {
 
     useEffect(() => {
         scrollToBottom();
-    }, [chatHistory, selectedUserId]);
+    }, [chatHistory]);
 
     const handleSend = (e) => {
         e.preventDefault();
@@ -591,9 +582,6 @@ const AdminChatView = () => {
         });
 
         setNewMessage('');
-        // Optimistic update or wait for re-render from context
-        const updated = getChats(user.id, selectedUserId); // Re-fetch to be safe
-        setChatHistory(updated);
     };
 
     return (
@@ -720,12 +708,18 @@ const AddCourseView = ({ onComplete }) => {
         }
         setCourse({ title: '', description: '', duration: '' });
         setSelectedTeacherId('');
-        alert("Course created with AI content!");
+        openModal({
+            title: "Course Created",
+            message: "Course created with AI content!",
+            type: 'info'
+        });
         if (onComplete) onComplete();
     };
 
     const handleEditSave = () => {
-        if (!editCourseData.title || !editCourseData.description) return alert("Title and Description are required");
+        if (!editCourseData.title || !editCourseData.description) {
+            return openModal({ title: "Error", message: "Title and Description are required", type: 'error' });
+        }
         updateCourse(editCourseData.id, {
             title: editCourseData.title,
             description: editCourseData.description,
@@ -734,7 +728,7 @@ const AddCourseView = ({ onComplete }) => {
         updateCourseAssignment(editCourseData.id, editTeacherId);
         setIsEditing(false);
         setSelectedCourseDetail(null); // Close modal
-        alert("Course updated successfully!");
+        openModal({ title: "Success", message: "Course updated successfully!", type: 'info' });
     };
 
     const openEditMode = (course) => {
@@ -843,34 +837,38 @@ const AddCourseView = ({ onComplete }) => {
             {viewMode === 'add' ? (
                 <div className="dash-card" style={{ maxWidth: '800px' }}>
                     <h3>Create New Course</h3>
-                    <form onSubmit={handleSubmit} style={{ marginTop: '20px' }}>
-                        <div className="form-group">
-                            <label>Course Name</label>
-                            <input required placeholder="e.g. Intro to Machine Learning" value={course.title} onChange={e => setCourse({ ...course, title: e.target.value })} />
-                        </div>
-                        <div className="form-group">
-                            <label>Description</label>
-                            <textarea rows="4" style={{ width: '100%', padding: '16px', border: '3px solid black', fontFamily: 'inherit' }} placeholder="Course objectives and summary..." value={course.description} onChange={e => setCourse({ ...course, description: e.target.value })} />
-                        </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                    {isGenerating ? (
+                        <AILoadingScreen title="Generating Course Content..." subtitle="Our AI is crafting a comprehensive 30-module syllabus for you." />
+                    ) : (
+                        <form onSubmit={handleSubmit} style={{ marginTop: '20px' }}>
                             <div className="form-group">
-                                <label>Assigned Teacher</label>
-                                <select
-                                    style={{ width: '100%', padding: '16px', border: '3px solid black' }}
-                                    value={selectedTeacherId}
-                                    onChange={e => setSelectedTeacherId(e.target.value)}
-                                >
-                                    <option value="">Select Teacher...</option>
-                                    {teachers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                                </select>
+                                <label>Course Name</label>
+                                <input required placeholder="e.g. Intro to Machine Learning" value={course.title} onChange={e => setCourse({ ...course, title: e.target.value })} />
                             </div>
                             <div className="form-group">
-                                <label>Duration (Weeks)</label>
-                                <input type="number" placeholder="12" value={course.duration} onChange={e => setCourse({ ...course, duration: e.target.value })} />
+                                <label>Description</label>
+                                <textarea rows="4" style={{ width: '100%', padding: '16px', border: '3px solid black', fontFamily: 'inherit' }} placeholder="Course objectives and summary..." value={course.description} onChange={e => setCourse({ ...course, description: e.target.value })} />
                             </div>
-                        </div>
-                        <button className="auth-button" style={{ background: 'var(--accent)' }}>Publish Course</button>
-                    </form>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                <div className="form-group">
+                                    <label>Assigned Teacher</label>
+                                    <select
+                                        style={{ width: '100%', padding: '16px', border: '3px solid black' }}
+                                        value={selectedTeacherId}
+                                        onChange={e => setSelectedTeacherId(e.target.value)}
+                                    >
+                                        <option value="">Select Teacher...</option>
+                                        {teachers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                                    </select>
+                                </div>
+                                <div className="form-group">
+                                    <label>Duration (Weeks)</label>
+                                    <input type="number" placeholder="12" value={course.duration} onChange={e => setCourse({ ...course, duration: e.target.value })} />
+                                </div>
+                            </div>
+                            <button className="auth-button" style={{ background: 'var(--accent)' }}>Publish Course</button>
+                        </form>
+                    )}
                 </div>
             ) : (
                 <div className="dash-card">
@@ -879,9 +877,9 @@ const AddCourseView = ({ onComplete }) => {
                         {courses.map((c, index) => (
                             <div key={c.id} onClick={() => setSelectedCourseDetail(c)} className="animate-scale" style={{ padding: '15px', border: '2px solid black', background: 'var(--bg-card)', cursor: 'pointer', animationDelay: `${index * 0.05}s` }}>
                                 <div style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>{c.title}</div>
-                                <div style={{ fontSize: '0.9rem', color: 'gray', margin: '5px 0' }}>{c.description.substring(0, 60)}...</div>
+                                <div style={{ fontSize: '0.9rem', color: 'gray', margin: '5px 0' }}>{(c.description || '').substring(0, 60)}...</div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px' }}>
-                                    <span style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>{c.duration} Weeks</span>
+                                    <span style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>{c.duration || 'N/A'} Weeks</span>
                                     <span style={{ fontSize: '0.8rem', color: 'blue', textDecoration: 'underline' }}>View Details</span>
                                 </div>
                             </div>
@@ -1037,11 +1035,59 @@ const ManageCoursesView = () => {
     );
 };
 
+// --- Ticket Management View ---
+
+const TicketManagementView = () => {
+    const { tickets, resolveTicket, users } = useData();
+    const [filter, setFilter] = useState('active'); // active, solved
+
+    const displayedTickets = tickets.filter(t => filter === 'active' ? t.status !== 'Solved' : t.status === 'Solved');
+
+    return (
+        <div>
+            <div className="admin-header-strip">
+                <h2>Support Tickets</h2>
+            </div>
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+                <button onClick={() => setFilter('active')} style={{ padding: '10px 20px', fontWeight: 'bold', border: '2px solid black', background: filter === 'active' ? 'black' : 'white', color: filter === 'active' ? 'white' : 'black', cursor: 'pointer' }}>ACTIVE</button>
+                <button onClick={() => setFilter('solved')} style={{ padding: '10px 20px', fontWeight: 'bold', border: '2px solid black', background: filter === 'solved' ? 'black' : 'white', color: filter === 'solved' ? 'white' : 'black', cursor: 'pointer' }}>SOLVED</button>
+            </div>
+
+            <div className="dash-card">
+                {displayedTickets.length === 0 ? <p style={{ fontStyle: 'italic', color: 'gray' }}>No {filter} tickets.</p> : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                        {displayedTickets.map(t => {
+                            const requester = users.find(u => u.id === t.userId);
+                            return (
+                                <div key={t.id} style={{ padding: '15px', border: '1px solid black', background: '#f9f9f9' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                                        <div>
+                                            <span style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{t.subject}</span>
+                                            <span style={{ marginLeft: '10px', fontSize: '0.8rem', background: '#e0e0e0', padding: '2px 6px', borderRadius: '4px' }}>{t.type}</span>
+                                        </div>
+                                        {t.status !== 'Solved' && (
+                                            <button onClick={() => resolveTicket(t.id)} style={{ background: 'green', color: 'white', border: '1px solid black', borderRadius: '4px', cursor: 'pointer', padding: '4px 8px', fontSize: '0.8rem', fontWeight: 'bold' }}>MARK SOLVED</button>
+                                        )}
+                                    </div>
+                                    <div style={{ fontSize: '0.9rem', marginBottom: '10px' }}>{t.description}</div>
+                                    <div style={{ fontSize: '0.8rem', color: 'gray', borderTop: '1px solid #ddd', paddingTop: '5px' }}>
+                                        Submitted by: <strong>{requester ? requester.name : t.userId}</strong> on {new Date(t.date).toLocaleDateString()}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
 // --- Main Container ---
 
 export default function AdminDashboard() {
     const { user, logout } = useAuth();
-    const { darkMode, toggleTheme } = useData();
+    const { darkMode, toggleTheme, openModal, closeModal, modalConfig } = useData();
     const [activeTab, setActiveTab] = useState('dashboard');
 
     const Menu = ({ id, icon, label }) => (
@@ -1067,6 +1113,7 @@ export default function AdminDashboard() {
                     <Menu id="add-courses" label="ADD COURSES" />
                     <Menu id="manage-courses" label="MANAGE LINKS" />
                     <Menu id="chat" label="CHAT CONSOLE" />
+                    <Menu id="tickets" label="TICKETS" />
                 </div>
 
                 <div style={{ marginTop: 'auto' }}>
@@ -1089,6 +1136,7 @@ export default function AdminDashboard() {
                 {activeTab === 'add-courses' && <AddCourseView onComplete={() => setActiveTab('manage-courses')} />}
                 {activeTab === 'manage-courses' && <ManageCoursesView />}
                 {activeTab === 'chat' && <AdminChatView />}
+                {activeTab === 'tickets' && <TicketManagementView />}
             </main>
         </div>
     );

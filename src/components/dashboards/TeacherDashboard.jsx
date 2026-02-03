@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
+import AILoadingScreen from '../common/AILoadingScreen';
+import { generateCourseSyllabus } from '../../services/aiService';
 
 // --- Sub-Components (Utilities) ---
 
@@ -165,19 +167,36 @@ const MyStudentsView = () => {
 
 const ManageCoursesView = () => {
     const { user } = useAuth();
-    const { addCourse, assignTeacher, getCoursesForTeacher } = useData();
+    const { addCourse, assignTeacher, getCoursesForTeacher, openModal } = useData();
     const [viewMode, setViewMode] = useState('list'); // 'add' or 'list'
     const [course, setCourse] = useState({ title: '', description: '', duration: '' });
+    const [isGenerating, setIsGenerating] = useState(false);
 
     const myCourses = getCoursesForTeacher(user.id);
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        const newCourse = addCourse(course);
+        setIsGenerating(true);
+        let modules = [];
+        try {
+            const syllabus = await generateCourseSyllabus(course.title);
+            if (syllabus && syllabus.modules) {
+                modules = syllabus.modules;
+            }
+        } catch (error) {
+            console.error("Failed to generate content", error);
+        }
+        setIsGenerating(false);
+
+        const newCourse = addCourse({ ...course, modules });
         assignTeacher(newCourse.id, user.id);
 
         setCourse({ title: '', description: '', duration: '' });
-        alert("Course created and assigned to you!");
+        openModal({
+            title: "Course Published",
+            message: "Course created and assigned to you with AI-generated content!",
+            type: 'info'
+        });
         setViewMode('list');
     };
 
@@ -195,21 +214,25 @@ const ManageCoursesView = () => {
             {viewMode === 'add' ? (
                 <div className="dash-card animate-scale" style={{ maxWidth: '800px' }}>
                     <h3>Create New Course</h3>
-                    <form onSubmit={handleSubmit} style={{ marginTop: '20px' }}>
-                        <div className="form-group">
-                            <label>Course Name</label>
-                            <input required placeholder="e.g. Advanced Botany" value={course.title} onChange={e => setCourse({ ...course, title: e.target.value })} />
-                        </div>
-                        <div className="form-group">
-                            <label>Description</label>
-                            <textarea rows="4" style={{ width: '100%', padding: '16px', border: '3px solid black', fontFamily: 'inherit' }} placeholder="Course objectives and summary..." value={course.description} onChange={e => setCourse({ ...course, description: e.target.value })} />
-                        </div>
-                        <div className="form-group">
-                            <label>Duration (Weeks)</label>
-                            <input type="number" placeholder="12" value={course.duration} onChange={e => setCourse({ ...course, duration: e.target.value })} />
-                        </div>
-                        <button className="auth-button" style={{ background: 'var(--accent)' }}>Publish Course</button>
-                    </form>
+                    {isGenerating ? (
+                        <AILoadingScreen title="Generating Course Content..." subtitle="Our AI is crafting a comprehensive 30-module syllabus for you." />
+                    ) : (
+                        <form onSubmit={handleSubmit} style={{ marginTop: '20px' }}>
+                            <div className="form-group">
+                                <label>Course Name</label>
+                                <input required placeholder="e.g. Advanced Botany" value={course.title} onChange={e => setCourse({ ...course, title: e.target.value })} />
+                            </div>
+                            <div className="form-group">
+                                <label>Description</label>
+                                <textarea rows="4" style={{ width: '100%', padding: '16px', border: '3px solid black', fontFamily: 'inherit' }} placeholder="Course objectives and summary..." value={course.description} onChange={e => setCourse({ ...course, description: e.target.value })} />
+                            </div>
+                            <div className="form-group">
+                                <label>Duration (Weeks)</label>
+                                <input type="number" placeholder="12" value={course.duration} onChange={e => setCourse({ ...course, duration: e.target.value })} />
+                            </div>
+                            <button className="auth-button" style={{ background: 'var(--accent)' }}>Publish Course</button>
+                        </form>
+                    )}
                 </div>
             ) : (
                 <div className="dash-card">
@@ -235,7 +258,7 @@ const ManageCoursesView = () => {
 
 const MeetingView = () => {
     const { user } = useAuth();
-    const { getStudentsForTeacher, scheduleMeeting, meetings } = useData();
+    const { getStudentsForTeacher, scheduleMeeting, meetings, openModal } = useData();
     const myStudents = getStudentsForTeacher(user.id);
     const [meeting, setMeeting] = useState({ studentId: '', date: '', time: '', link: '' });
     const [activeSubTab, setActiveSubTab] = useState('schedule'); // 'schedule' or 'view'
@@ -247,7 +270,11 @@ const MeetingView = () => {
         e.preventDefault();
         scheduleMeeting({ ...meeting, teacherId: user.id });
         setMeeting({ studentId: '', date: '', time: '', link: '' });
-        alert('Meeting Scheduled!');
+        openModal({
+            title: "Meeting Scheduled",
+            message: "Your learning session has been successfully scheduled.",
+            type: 'info'
+        });
         setActiveSubTab('view');
     };
 
@@ -332,26 +359,15 @@ const ChatView = () => {
     const myStudents = getStudentsForTeacher(user.id);
 
     // State
+    // State
     const [selectedStudentId, setSelectedStudentId] = useState(myStudents[0]?.id || '');
     const [newMessage, setNewMessage] = useState('');
-    const [chatHistory, setChatHistory] = useState([]);
     const chatEndRef = useRef(null);
 
-    // Load Chats when student changes or on mount
-    useEffect(() => {
-        if (selectedStudentId) {
-            const history = getChats(user.id, selectedStudentId);
-            setChatHistory(history);
-        }
-    }, [selectedStudentId, user.id, getChats]); // Dependencies need to include getChats to re-run if new msg sent? Actually getChats is constant, we need to trigger re-fetch.
-
-    // Polling or listener for new messages would be better, but for now we rely on explicit updates
-    const refreshChats = () => {
-        if (selectedStudentId) {
-            const history = getChats(user.id, selectedStudentId);
-            setChatHistory(history);
-        }
-    };
+    const chatHistory = useMemo(() => {
+        if (!selectedStudentId) return [];
+        return getChats(user.id, selectedStudentId);
+    }, [selectedStudentId, user.id, getChats]);
 
     const handleSend = (e) => {
         e.preventDefault();
@@ -365,7 +381,6 @@ const ChatView = () => {
         });
 
         setNewMessage('');
-        refreshChats(); // Refresh UI
     };
 
     // Auto-scroll to bottom
@@ -461,7 +476,7 @@ const ChatView = () => {
 
 export default function TeacherDashboard() {
     const { user, logout } = useAuth();
-    const { darkMode, toggleTheme } = useData();
+    const { darkMode, toggleTheme, openModal, closeModal, modalConfig } = useData();
     const [activeTab, setActiveTab] = useState('dashboard');
 
     const Menu = ({ id, label }) => (
